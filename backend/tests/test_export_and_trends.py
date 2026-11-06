@@ -18,33 +18,33 @@ class TestExportAndTrends(unittest.TestCase):
             "word": "resilience",
             "context_sentence": "Cultivating emotional resilience helps professionals recover from setbacks.",
             "source_info": "2024 考研英语（一）Text 1",
-            "group_id": "2024-en1-text-1"
+            "group_id": "2024-english-1-reading-text-1"
         })
 
         # 2. 产生一次客观题作答并提交批改，生成错题记录
         res_att = cls.client.post("/api/practice/attempt", json={
             "mode": "special_group",
             "target_type": "group",
-            "target_id": "2024-en1-text-1",
+            "target_id": "2024-english-1-reading-text-1",
             "user_id": cls.user_id
         })
         cls.att_id = res_att.json()["id"]
 
         # 提交一份包含答对与答错的响应
         cls.client.post(f"/api/practice/attempt/{cls.att_id}/response", json={
-            "question_id": "2024-en1-q21",
-            "user_answer": "B"  # 正确
+            "question_id": "2024-english-1-text1-q21",
+            "user_answer": "D"  # 正确
         })
         cls.client.post(f"/api/practice/attempt/{cls.att_id}/response", json={
-            "question_id": "2024-en1-q22",
-            "user_answer": "C"  # 故意答错，正确是 A
+            "question_id": "2024-english-1-text1-q22",
+            "user_answer": "C"  # 故意答错，正确是 D
         })
 
         # 提交批改
         cls.client.post("/api/practice/submit", json={
             "attempt_id": cls.att_id,
             "scope": "group",
-            "scope_id": "2024-en1-text-1",
+            "scope_id": "2024-english-1-reading-text-1",
             "user_id": cls.user_id
         })
 

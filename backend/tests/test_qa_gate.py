@@ -19,7 +19,7 @@ class TestContentQAGate(unittest.TestCase):
 
     def test_qa_gate_valid_group(self):
         """AT-09 Part 1: 已核验的合法题组应顺利通过门禁并产生校验指纹"""
-        res = ContentQAGate.validate_question_group(self.db, "2024-en1-text-1")
+        res = ContentQAGate.validate_question_group(self.db, "2024-english-1-reading-text-1")
         self.assertTrue(res.is_valid, f"Validation failed: {res.errors}")
         self.assertGreater(len(res.checksum), 10)
         self.assertEqual(len(res.errors), 0)
@@ -29,7 +29,7 @@ class TestContentQAGate(unittest.TestCase):
         test_grp_id = f"test-invalid-grp-{uuid.uuid4()}"
         grp = QuestionGroup(
             id=test_grp_id,
-            section_id="2024-en1-sec-reading-a",
+            section_id="2024-english-1-sec-reading-a",
             exam_id="2024-english-1",
             group_type="reading_a",
             title="Broken Text",

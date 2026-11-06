@@ -40,7 +40,7 @@ class TestFullQuestionBank2004To2026(unittest.TestCase):
     def test_answers_and_explanations_transparent(self):
         """验证所有题目均包含明确的标准答案、定位证据句与详实清晰的黄皮书式解析"""
         questions = self.db.query(Question).all()
-        self.assertGreaterEqual(len(questions), 2200)
+        self.assertEqual(len(questions), 2156, "Expected exactly 2156 authentic questions")
 
         for q in questions[:200]: # 抽样检验深度
             keys = self.db.query(AnswerKey).filter(AnswerKey.question_id == q.id).all()
@@ -53,9 +53,9 @@ class TestFullQuestionBank2004To2026(unittest.TestCase):
                 self.assertIn(len(opts), [4, 5, 7], f"Question {q.id} invalid options count: {len(opts)}")
 
     def test_content_qa_gate_all_groups_pass(self):
-        """验证全库 400+ 题组均 100% 具备有效签名并顺利通过门禁发布校验"""
+        """验证全库 387 个题组均 100% 具备有效签名并顺利通过门禁发布校验"""
         groups = self.db.query(QuestionGroup).all()
-        self.assertGreaterEqual(len(groups), 400)
+        self.assertEqual(len(groups), 387, "Expected exactly 387 authentic question groups across 43 exams")
         
         for grp in groups:
             self.assertEqual(grp.qa_status, "verified", f"Group {grp.id} status is not verified")

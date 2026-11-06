@@ -3,7 +3,7 @@ class KaoyanApp {
   constructor() {
     this.userId = "default_user";
     this.currentExamId = "2024-english-1";
-    this.currentGroupId = "2024-en1-text-1";
+    this.currentGroupId = "2024-english-1-reading-text-1";
     this.currentMode = "special_training"; // special_training / practice_full / strict_mock
     this.currentCategoryFilter = "all";
     this.currentAttemptId = null;

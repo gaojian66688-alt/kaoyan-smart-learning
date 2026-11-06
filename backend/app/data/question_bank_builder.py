@@ -376,8 +376,11 @@ def build_all_exams() -> list[dict]:
             }
 
         # -------------------------------------------------------------
-        # Writing Part A (应用文, 10分)
+        # Writing Part A (应用文, 10分: 英一为第51题, 英二为第47题)
         # -------------------------------------------------------------
+        writing_a_num = 51 if exam_type == "english_1" else 47
+        writing_b_num = 52 if exam_type == "english_1" else 48
+
         writing_a_sec = {
             "id": f"{exam_id}-sec-writing-a",
             "section_code": "writing_a",
@@ -392,7 +395,7 @@ def build_all_exams() -> list[dict]:
                     "title": f"Writing Part A: {year} 应用文书信与通知",
                     "source_info": "National Graduate Entrance Exam Committee Authentic Writing Tasks",
                     "passage_text": (
-                        f"51. Directions:\n"
+                        f"{writing_a_num}. Directions:\n"
                         f"Suppose you are the head of the student union or organizing an upcoming academic/volunteer event. "
                         f"Write a formal letter or notice (about 100 words) on ANSWER SHEET 2 to:\n"
                         f"1) state the primary purpose and background of your request/notice,\n"
@@ -403,8 +406,8 @@ def build_all_exams() -> list[dict]:
                     "order_index": 1,
                     "questions": [
                         {
-                            "id": f"{exam_id}-writing-q51",
-                            "question_num": 51,
+                            "id": f"{exam_id}-writing-q{writing_a_num}",
+                            "question_num": writing_a_num,
                             "order_index": 1,
                             "category": "subjective",
                             "prompt": "Write your letter/notice of about 100 words. Do not sign your own name; use 'Li Ming' instead.",
@@ -442,11 +445,11 @@ def build_all_exams() -> list[dict]:
         }
 
         # -------------------------------------------------------------
-        # Writing Part B (大作文: 英一图画 20分; 英二图表 15分)
+        # Writing Part B (大作文: 英一图画 20分, 第52题; 英二图表 15分, 第48题)
         # -------------------------------------------------------------
         if exam_type == "english_1":
             writing_b_passage = (
-                f"52. Directions:\n"
+                f"{writing_b_num}. Directions:\n"
                 f"Write an essay of 160-200 words based on the following drawing. In your essay, you should:\n"
                 f"1) describe the drawing briefly,\n"
                 f"2) interpret its underlying social/psychological implications, and\n"
@@ -463,7 +466,7 @@ def build_all_exams() -> list[dict]:
             ]
         else:
             writing_b_passage = (
-                f"52. Directions:\n"
+                f"{writing_b_num}. Directions:\n"
                 f"Write an essay based on the following chart. In your essay, you should:\n"
                 f"1) interpret the chart and its primary trends, and\n"
                 f"2) give your comments and policy reflections.\n"
@@ -495,8 +498,8 @@ def build_all_exams() -> list[dict]:
                     "order_index": 1,
                     "questions": [
                         {
-                            "id": f"{exam_id}-writing-q52",
-                            "question_num": 52,
+                            "id": f"{exam_id}-writing-q{writing_b_num}",
+                            "question_num": writing_b_num,
                             "order_index": 1,
                             "category": "subjective",
                             "prompt": f"Write your essay on the ANSWER SHEET. Explain the underlying meaning and state your viewpoint.",

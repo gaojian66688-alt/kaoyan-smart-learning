@@ -86,6 +86,58 @@ def run_ui_test():
                 page.click(".popover-close")
                 time.sleep(0.5)
 
+            # 7c. 自动化测试批改后解析交互：错题自动展开、正确题折叠并提供展开按钮 (Prompt #9 核心要求)
+            page.on("dialog", lambda dialog: dialog.accept())
+            
+            # 答题：Q21 选 D (正确)，Q22 选 C (错误，标准为 D)
+            q21_opt_d = page.locator("#q-card-2024-english-1-text1-q21 .option-item[data-key='D']")
+            if q21_opt_d.count() > 0:
+                q21_opt_d.click()
+                time.sleep(0.3)
+            q22_opt_c = page.locator("#q-card-2024-english-1-text1-q22 .option-item[data-key='C']")
+            if q22_opt_c.count() > 0:
+                q22_opt_c.click()
+                time.sleep(0.3)
+
+            # 点击提交本组练习批改
+            page.click("#btnSubmitGroup")
+            page.wait_for_selector("#modalScore")
+            time.sleep(1)
+            print("6c. Group grading submitted successfully and grade modal displayed.")
+
+            # 关闭模态框以查看题目卡片批改结果
+            page.click(".modal-close")
+            time.sleep(0.5)
+
+            # 验证错误题目 Q22：自动展开解析
+            q22_wrong_badge = page.locator("#q-card-2024-english-1-text1-q22 .badge-wrong")
+            assert q22_wrong_badge.count() > 0, "Q22 wrong badge missing"
+            q22_toggle_btn = page.locator("#btn-toggle-2024-english-1-text1-q22")
+            assert "收起解析" in q22_toggle_btn.inner_text(), "Q22 should be auto-expanded with collapse button"
+            q22_exp_content = page.locator("#exp-card-2024-english-1-text1-q22")
+            assert "expanded" in q22_exp_content.get_attribute("class"), "Q22 exp content should have expanded class"
+            print("6d. Wrong question (Q22) auto-expanded explanation verified.")
+
+            # 验证正确题目 Q21：默认折叠，提供“查看解析 ▼”按钮
+            q21_correct_badge = page.locator("#q-card-2024-english-1-text1-q21 .badge-correct")
+            assert q21_correct_badge.count() > 0, "Q21 correct badge missing"
+            q21_toggle_btn = page.locator("#btn-toggle-2024-english-1-text1-q21")
+            assert "查看解析" in q21_toggle_btn.inner_text(), "Q21 should have '查看解析' toggle button"
+            q21_exp_content = page.locator("#exp-card-2024-english-1-text1-q21")
+            assert "collapsed" in q21_exp_content.get_attribute("class"), "Q21 exp content should be initially collapsed"
+            
+            # 用户点击展开正确题目解析
+            q21_toggle_btn.click()
+            time.sleep(0.3)
+            assert "expanded" in q21_exp_content.get_attribute("class"), "Q21 should expand after clicking toggle"
+            assert "收起解析" in q21_toggle_btn.inner_text(), "Q21 button should change to '收起解析'"
+            
+            # 用户再次点击折叠
+            q21_toggle_btn.click()
+            time.sleep(0.3)
+            assert "collapsed" in q21_exp_content.get_attribute("class"), "Q21 should collapse after clicking toggle again"
+            print("6e. Correct question (Q21) collapsible explanation toggle verified.")
+
         # 8. 切换到【FSRS背词】页面
         page.click("button[data-view='viewReview']")
         page.wait_for_selector(".flashcard-container")

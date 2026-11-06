@@ -40,7 +40,7 @@ class TestSubjectiveGrading(unittest.TestCase):
             user_id=self.user_id,
             mode="special_training",
             target_type="group",
-            target_id="2024-en1-trans-1",
+            target_id="2024-english-1-trans-group",
             status="in_progress"
         )
         self.db.add(att)
@@ -49,8 +49,8 @@ class TestSubjectiveGrading(unittest.TestCase):
         r = Response(
             id=str(uuid.uuid4()),
             attempt_id=att_id,
-            question_id="2024-en1-q46",
-            user_answer="虽然系统化的方法提供了必要的严谨性，但重大的科学突破往往源自意外的异常现象，需要直觉的解释。",
+            question_id="2024-english-1-trans-q46",
+            user_answer="长久以来，相关专业素养在该领域一直被视为专家独有的，而不是高等教育者知识底蕴中不可或缺的组成部分。",
             is_final_snapshot=False
         )
         self.db.add(r)
@@ -60,14 +60,14 @@ class TestSubjectiveGrading(unittest.TestCase):
             db=self.db,
             attempt_id=att_id,
             scope="group",
-            scope_id="2024-en1-trans-1",
+            scope_id="2024-english-1-trans-group",
             user_id=self.user_id
         )
 
         self.assertGreater(sub.subjective_score, 0.0)
         self.assertEqual(sub.objective_score, 0.0)
         
-        gr_46 = next(g for g in sub.grade_results if g.question_id == "2024-en1-q46")
+        gr_46 = next(g for g in sub.grade_results if g.question_id == "2024-english-1-trans-q46")
         self.assertTrue(gr_46.is_estimated) # 必须明确标记估分性质
         self.assertIn("一类档", gr_46.score_band)
         self.assertGreaterEqual(gr_46.score, 1.5)
@@ -80,7 +80,7 @@ class TestSubjectiveGrading(unittest.TestCase):
             user_id=self.user_id,
             mode="special_training",
             target_type="group",
-            target_id="2024-en1-writing-a",
+            target_id="2024-english-1-writing-a-group",
             status="in_progress"
         )
         self.db.add(att)
@@ -103,7 +103,7 @@ class TestSubjectiveGrading(unittest.TestCase):
         r = Response(
             id=str(uuid.uuid4()),
             attempt_id=att_id,
-            question_id="2024-en1-q51",
+            question_id="2024-english-1-writing-q51",
             user_answer=sample_notice,
             is_final_snapshot=False
         )
@@ -114,11 +114,11 @@ class TestSubjectiveGrading(unittest.TestCase):
             db=self.db,
             attempt_id=att_id,
             scope="group",
-            scope_id="2024-en1-writing-a",
+            scope_id="2024-english-1-writing-a-group",
             user_id=self.user_id
         )
 
-        gr_51 = next(g for g in sub.grade_results if g.question_id == "2024-en1-q51")
+        gr_51 = next(g for g in sub.grade_results if g.question_id == "2024-english-1-writing-q51")
         self.assertTrue(gr_51.is_estimated)
         self.assertIn("一档", gr_51.score_band)
         self.assertGreaterEqual(gr_51.score, 8.0)

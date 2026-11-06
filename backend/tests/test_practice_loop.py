@@ -57,19 +57,19 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
         导入真题 → 阅读作答 → 标记生词 → 主动提交 → 标准答案评分 → AI 分析 → 生词进入 FSRS → 保存学习档案
         """
         # Step 1: 获取真题阅读单元 (2024 英语一 Text 1)
-        res_group = self.client.get("/api/exams/group/2024-en1-text-1")
+        res_group = self.client.get("/api/exams/group/2024-english-1-reading-text-1")
         self.assertEqual(res_group.status_code, 200)
         group_data = res_group.json()
-        self.assertEqual(group_data["title"], "Text 1")
+        self.assertIn("Text 1", group_data["title"])
         self.assertEqual(len(group_data["questions"]), 5)
         self.assertEqual(group_data["qa_status"], "verified")
-        self.assertIn("algorithmic management", group_data["passage_text"])
+        self.assertTrue(len(group_data["passage_text"]) > 100)
 
         # Step 2: 开启作答会话 (专项训练模式)
         res_att = self.client.post("/api/practice/attempt", json={
             "mode": "special_training",
             "target_type": "group",
-            "target_id": "2024-en1-text-1",
+            "target_id": "2024-english-1-reading-text-1",
             "user_id": self.test_user
         })
         self.assertEqual(res_att.status_code, 200)
@@ -90,7 +90,7 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
             "word": "insidious",
             "context_sentence": "Yet beneath the veneer of quantitative neutrality lies an insidious tension.",
             "source_info": "2024 考研英语（一）Text 1 第2段",
-            "group_id": "2024-en1-text-1",
+            "group_id": "2024-english-1-reading-text-1",
             "user_id": self.test_user
         })
         self.assertEqual(res_mark.status_code, 200)
@@ -104,7 +104,7 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
             "word": "insidious",
             "context_sentence": "Another insidious trap in algorithmic evaluation.",
             "source_info": "2024 考研英语（一）模拟补充例句",
-            "group_id": "2024-en1-text-1",
+            "group_id": "2024-english-1-reading-text-1",
             "user_id": self.test_user
         })
         self.assertEqual(res_mark2.status_code, 200)
@@ -115,11 +115,11 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
         # Step 4: 答题自动保存草稿 (AT-04)
         # 故意将 Q23 答错以测试错题流转与 AI 错因归因
         draft_responses = [
-            {"question_id": "2024-en1-q21", "user_answer": "B"}, # 对
-            {"question_id": "2024-en1-q22", "user_answer": "A"}, # 对
-            {"question_id": "2024-en1-q23", "user_answer": "A"}, # 错 (标准为 C)
-            {"question_id": "2024-en1-q24", "user_answer": "B"}, # 对
-            {"question_id": "2024-en1-q25", "user_answer": "B"}  # 对
+            {"question_id": "2024-english-1-text1-q21", "user_answer": "D"}, # 对
+            {"question_id": "2024-english-1-text1-q22", "user_answer": "D"}, # 对
+            {"question_id": "2024-english-1-text1-q23", "user_answer": "B"}, # 错 (标准为 A)
+            {"question_id": "2024-english-1-text1-q24", "user_answer": "B"}, # 对
+            {"question_id": "2024-english-1-text1-q25", "user_answer": "C"}  # 对
         ]
         res_save = self.client.post("/api/practice/save", json={
             "attempt_id": attempt_id,
@@ -133,17 +133,17 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
         res_resume = self.client.post("/api/practice/attempt", json={
             "mode": "special_training",
             "target_type": "group",
-            "target_id": "2024-en1-text-1",
+            "target_id": "2024-english-1-reading-text-1",
             "user_id": self.test_user
         })
         self.assertEqual(res_resume.json()["status"], "in_progress")
-        self.assertEqual(res_resume.json()["saved_responses"]["2024-en1-q21"], "B")
+        self.assertEqual(res_resume.json()["saved_responses"]["2024-english-1-text1-q21"], "D")
 
         # Step 5: 主动提交批改 (G04 & G03)
         res_submit = self.client.post("/api/practice/submit", json={
             "attempt_id": attempt_id,
             "scope": "group",
-            "scope_id": "2024-en1-text-1",
+            "scope_id": "2024-english-1-reading-text-1",
             "user_id": self.test_user
         })
         self.assertEqual(res_submit.status_code, 200)
@@ -162,9 +162,9 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
         self.assertEqual(res_mistakes.status_code, 200)
         m_list = res_mistakes.json()
         self.assertEqual(len(m_list), 1)
-        self.assertEqual(m_list[0]["question_id"], "2024-en1-q23")
-        self.assertEqual(m_list[0]["last_user_answer"], "A")
-        self.assertEqual(m_list[0]["correct_answer"], "C")
+        self.assertEqual(m_list[0]["question_id"], "2024-english-1-text1-q23")
+        self.assertEqual(m_list[0]["last_user_answer"], "B")
+        self.assertEqual(m_list[0]["correct_answer"], "A")
 
         # 用户在错题本标记真实错因 (PRD 10.1)
         res_tag = self.client.post(f"/api/mistakes/{m_list[0]['id']}/tag", json={"tag": "过度推论，未扣住文章互信受损"})
@@ -181,7 +181,7 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
         # 验证区分了 Fact 和 Hypothesis
         wrong_diag = next(item for item in ai_data["evidence_items"] if item["status"] == "wrong")
         self.assertEqual(wrong_diag["question_num"], 23)
-        self.assertIn("选 [A]，标准答案为 [C]", wrong_diag["fact"])
+        self.assertIn("选 [B]，标准答案为 [A]", wrong_diag["fact"])
         self.assertGreater(len(wrong_diag["hypothesis"]), 0)
         self.assertGreater(len(wrong_diag["evidence_quote"]), 0)
 

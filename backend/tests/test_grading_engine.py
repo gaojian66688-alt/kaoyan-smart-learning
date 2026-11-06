@@ -63,11 +63,11 @@ class TestGradingEngineAT01(unittest.TestCase):
         self.db.add(att)
 
         user_answers = {
-            "2024-en1-q21": "B",
-            "2024-en1-q22": "A",
-            "2024-en1-q23": "A", # 错选 A (标准是 C)
-            "2024-en1-q24": "B",
-            "2024-en1-q25": "B"
+            "2024-english-1-text1-q21": "D",
+            "2024-english-1-text1-q22": "D",
+            "2024-english-1-text1-q23": "B", # 错选 B (标准是 A)
+            "2024-english-1-text1-q24": "B",
+            "2024-english-1-text1-q25": "C"
         }
 
         for q_id, ans in user_answers.items():
@@ -86,7 +86,7 @@ class TestGradingEngineAT01(unittest.TestCase):
             db=self.db,
             attempt_id=attempt_id,
             scope="group",
-            scope_id="2024-en1-text-1",
+            scope_id="2024-english-1-reading-text-1",
             user_id=self.user_id
         )
 
@@ -98,19 +98,19 @@ class TestGradingEngineAT01(unittest.TestCase):
 
         # 检查逐题明细
         grs_group = {gr.question_id: gr for gr in sub_group.grade_results}
-        self.assertTrue(grs_group["2024-en1-q21"].is_correct)
-        self.assertEqual(grs_group["2024-en1-q21"].score, 2.0)
-        self.assertFalse(grs_group["2024-en1-q23"].is_correct)
-        self.assertEqual(grs_group["2024-en1-q23"].score, 0.0)
+        self.assertTrue(grs_group["2024-english-1-text1-q21"].is_correct)
+        self.assertEqual(grs_group["2024-english-1-text1-q21"].score, 2.0)
+        self.assertFalse(grs_group["2024-english-1-text1-q23"].is_correct)
+        self.assertEqual(grs_group["2024-english-1-text1-q23"].score, 0.0)
 
         # 检查错题本是否自动收录了 Q23
         mistake = self.db.query(Mistake).filter(
             Mistake.user_id == self.user_id,
-            Mistake.question_id == "2024-en1-q23"
+            Mistake.question_id == "2024-english-1-text1-q23"
         ).first()
         self.assertIsNotNone(mistake)
-        self.assertEqual(mistake.last_user_answer, "A")
-        self.assertEqual(mistake.correct_answer, "C")
+        self.assertEqual(mistake.last_user_answer, "B")
+        self.assertEqual(mistake.correct_answer, "A")
         self.assertFalse(mistake.is_mastered)
 
         # Step 2: 板块提交 (scope = "section")
@@ -118,7 +118,7 @@ class TestGradingEngineAT01(unittest.TestCase):
             db=self.db,
             attempt_id=attempt_id,
             scope="section",
-            scope_id="2024-en1-sec-reading-a",
+            scope_id="2024-english-1-sec-reading-a",
             user_id=self.user_id
         )
 
