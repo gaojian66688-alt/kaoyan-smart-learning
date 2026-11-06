@@ -1002,35 +1002,207 @@ body {
   gap: 8px;
 }
 
-/* 浮动划词/短语操作胶囊 */
+/* 浮动划词/短语操作快捷条 */
 .phrase-selection-tooltip {
   position: absolute;
   z-index: 999;
-  background: #1e293b;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(8px);
   color: #ffffff;
-  padding: 6px 14px;
-  border-radius: 20px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  font-size: 12.5px;
-  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
-  gap: 6px;
-  cursor: pointer;
+  gap: 8px;
   user-select: none;
   animation: popIn 0.15s ease-out;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: transform 0.15s ease, background-color 0.15s ease;
-}
-
-.phrase-selection-tooltip:hover {
-  background: #0f172a;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .phrase-selection-tooltip.hidden {
   display: none !important;
+}
+
+.tooltip-preview {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: #94a3b8;
+  padding-right: 4px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tooltip-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tooltip-btn {
+  border: none;
+  border-radius: 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-quick-mark {
+  background: linear-gradient(135deg, #f59e0b, #eab308);
+  color: #0f172a;
+}
+.btn-quick-mark:hover {
+  background: linear-gradient(135deg, #d97706, #ca8a04);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+.btn-lookup {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+.btn-lookup:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+/* 范围微调助手 */
+.popover-range-adjuster {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  border: 1px solid var(--gray-200);
+}
+
+.adjuster-label {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.adjuster-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 10.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.adjuster-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
+}
+
+/* 语境核心短语探测建议区 */
+.phrase-detection-box {
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  animation: popIn 0.2s ease-out;
+}
+
+.detection-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #854d0e;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detected-phrase-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #fde047;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.detected-phrase-item:last-child {
+  margin-bottom: 0;
+}
+
+.phrase-name-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.detected-phrase-text {
+  font-weight: 700;
+  color: #713f12;
+}
+
+.detected-phrase-mean {
+  font-size: 10.5px;
+  color: #a16207;
+}
+
+.btn-detect-mark {
+  background: #eab308;
+  border: none;
+  color: #422006;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-detect-mark:hover {
+  background: #ca8a04;
+  color: #ffffff;
+}
+
+/* 轻量操作提示 Toast */
+.app-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-toast.hidden {
+  opacity: 0;
+  transform: translate(-50%, -10px);
+  pointer-events: none;
 }
 
 .btn-outline-danger {

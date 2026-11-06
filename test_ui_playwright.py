@@ -137,10 +137,25 @@ def run_ui_test():
             unmark_btn.click()
             time.sleep(0.5)
             print("6b-4. Phrase unmark and marker removal verified.")
-            pop_close = page.locator(".popover-close")
-            if pop_close.is_visible():
-                pop_close.click()
-                time.sleep(0.5)
+            # 7b-5: 验证智能短语探测器与一键标记浮动条
+            # 模拟划选短语 "handmade nails" 弹出悬浮条
+            page.evaluate("""() => {
+                app.pendingSelectedText = "handmade nails";
+                app.pendingSelectionContainer = document.querySelector('.passage-paragraph');
+                const tooltip = document.getElementById('phraseSelectionTooltip');
+                if (tooltip) {
+                    document.getElementById('tooltipPreview').innerText = '"handmade nails"';
+                    tooltip.classList.remove('hidden');
+                }
+            }""")
+            time.sleep(0.5)
+            btn_quick = page.locator("#btnTooltipQuickMark")
+            assert btn_quick.is_visible(), "Quick mark phrase button should be visible"
+            btn_quick.click()
+            time.sleep(0.8)
+            phrase_nails = page.locator(".passage-article .phrase-marker.marker-highlight:has-text('handmade nails')")
+            assert phrase_nails.count() > 0, "Handmade nails phrase must be highlighted via quick mark"
+            print("6b-5. Floating tooltip 1-click quick mark verified.")
 
             # 7c. 自动化测试批改后解析交互：错题自动展开、正确题折叠并提供展开按钮 (Prompt #9 核心要求)
             page.on("dialog", lambda dialog: dialog.accept())

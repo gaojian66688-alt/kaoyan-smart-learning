@@ -7,6 +7,7 @@ class WordLookupResponse(BaseModel):
     phonetic: Optional[str] = None
     meaning: str
     is_saved: bool = False
+    detected_phrases: list[dict] = []
 
 class MarkWordRequest(BaseModel):
     word: str

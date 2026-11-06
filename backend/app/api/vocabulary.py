@@ -13,13 +13,14 @@ from app.schemas.vocabulary import (
     VocabularyOccurrenceSchema, ReviewFeedbackRequest, ReviewFeedbackResponse
 )
 from app.core.fsrs_scheduler import default_fsrs
-from app.core.phrase_dict import lookup_phrase_meaning
+from app.core.phrase_dict import lookup_phrase_meaning, detect_phrases_in_sentence
 
 router = APIRouter(prefix="/vocabulary", tags=["Vocabulary"])
 
 @router.get("/lookup", response_model=WordLookupResponse)
 def lookup_word(
     word: str = Query(..., description="English word or phrase to lookup"),
+    sentence: str = Query(None, description="Context sentence for smart phrase detection"),
     user_id: str = "default_user",
     db: Session = Depends(get_db)
 ):
@@ -32,12 +33,16 @@ def lookup_word(
         UserVocabulary.word == clean_w
     ).first()
 
+    # 扫描语境中的考研高频核心短语
+    detected = detect_phrases_in_sentence(sentence, target_word=clean_w) if sentence else []
+
     if entry:
         return WordLookupResponse(
             word=entry.word,
             phonetic=entry.phonetic,
             meaning=entry.meaning,
-            is_saved=bool(saved)
+            is_saved=bool(saved),
+            detected_phrases=detected
         )
 
     # 考研核心短语与固定搭配检测
@@ -47,16 +52,36 @@ def lookup_word(
             word=clean_w,
             phonetic="[短语搭配]",
             meaning=phrase_meaning,
-            is_saved=bool(saved)
+            is_saved=bool(saved),
+            detected_phrases=detected
         )
 
-    # 短语兜底提示或单生词兜底
+    # 短语：逐词智能拆解语义合成 (例如 curious treasure -> curious + treasure)
     is_phrase = " " in clean_w or "-" in clean_w
+    if is_phrase:
+        sub_words = [w for w in clean_w.replace("-", " ").split() if w]
+        sub_meanings = []
+        for sw in sub_words:
+            w_item = db.query(WordDict).filter(WordDict.word == sw).first()
+            if w_item and w_item.meaning:
+                first_m = w_item.meaning.split(";")[0].split("；")[0].split("\n")[0].strip()
+                sub_meanings.append(f"{sw} ({first_m})")
+        if sub_meanings:
+            synthesized = " [词意构成] " + " + ".join(sub_meanings)
+            return WordLookupResponse(
+                word=clean_w,
+                phonetic="[核心短语]",
+                meaning=f"真题重点搭配：{synthesized}",
+                is_saved=bool(saved),
+                detected_phrases=detected
+            )
+
     return WordLookupResponse(
         word=clean_w,
         phonetic="[核心短语]" if is_phrase else None,
-        meaning="考研真题核心重点短语搭配 (可通过真题语境推导语义，支持自定释义)" if is_phrase else "真题高频核心词汇 (可通过上下文推测语义)",
-        is_saved=bool(saved)
+        meaning="考研真题重点短语搭配 (支持自定释义与真题原句复习)" if is_phrase else "真题核心词汇 (可通过上下文推测语义)",
+        is_saved=bool(saved),
+        detected_phrases=detected
     )
 
 @router.post("/mark", response_model=UserVocabularySchema)

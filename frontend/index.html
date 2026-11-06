@@ -361,21 +361,43 @@
       </button>
     </nav>
 
-    <!-- 浮动划词/短语操作胶囊 (在文章、选项处划词即出) -->
-    <div id="phraseSelectionTooltip" class="phrase-selection-tooltip hidden" onmousedown="app.onSelectionTooltipClick(event)">
-      <span class="tooltip-icon">🖍️</span>
-      <span class="tooltip-text">查短语 / 标记</span>
+    <!-- 浮动划词/短语快捷操作条 (在文章、选项处划词即出) -->
+    <div id="phraseSelectionTooltip" class="phrase-selection-tooltip hidden">
+      <span class="tooltip-preview" id="tooltipPreview">短语</span>
+      <div class="tooltip-actions">
+        <button class="tooltip-btn btn-quick-mark" id="btnTooltipQuickMark" onmousedown="app.onQuickMarkPhraseClick(event)" title="直接高亮标记并加入生词本">
+          🖍️ 一键标记短语
+        </button>
+        <button class="tooltip-btn btn-lookup" id="btnTooltipLookup" onmousedown="app.onSelectionTooltipClick(event)" title="查看详细释义与微调">
+          🔍 释义
+        </button>
+      </div>
     </div>
 
     <!-- 生词与短语轻量弹窗 (点击单词/短语或划词查义) -->
     <div id="wordPopover" class="word-popover hidden">
       <div class="popover-header">
-        <h4 id="popoverWord">word</h4>
-        <span id="popoverPhonetic" class="popover-phonetic">/ - /</span>
+        <div style="display:flex; align-items:baseline; gap:6px;">
+          <h4 id="popoverWord">word</h4>
+          <span id="popoverPhonetic" class="popover-phonetic">/ - /</span>
+        </div>
         <span id="popoverTypeTag" class="popover-type-tag">单词</span>
         <button class="popover-close" onclick="app.closeWordPopover()">×</button>
       </div>
+
+      <!-- 范围微调控制条 (点按直接扩展短语范围，免去鼠标反复拖选之苦) -->
+      <div class="popover-range-adjuster" id="popoverRangeAdjuster">
+        <span class="adjuster-label">短语微调:</span>
+        <button class="adjuster-btn" onclick="app.adjustPhraseRange('expand-left')" title="向前增加一个单词">◀ 往前扩</button>
+        <button class="adjuster-btn" onclick="app.adjustPhraseRange('shrink-left')" title="向前减少一个单词">▶ 往前缩</button>
+        <button class="adjuster-btn" onclick="app.adjustPhraseRange('shrink-right')" title="向后减少一个单词">◀ 往后缩</button>
+        <button class="adjuster-btn" onclick="app.adjustPhraseRange('expand-right')" title="向后增加一个单词">往后扩 ▶</button>
+      </div>
+
       <div class="popover-body">
+        <!-- 语境核心短语智能识别探测区 -->
+        <div id="popoverPhraseDetection" class="phrase-detection-box" style="display:none;"></div>
+
         <p id="popoverMeaning" class="popover-meaning">释义加载中...</p>
         <div id="popoverPhraseSuggestions" class="phrase-sug-row" style="display:none;"></div>
         <div class="popover-sentence-preview">
@@ -392,6 +414,9 @@
         </button>
       </div>
     </div>
+
+    <!-- 轻量操作提示 Toast -->
+    <div id="appToast" class="app-toast hidden"></div>
 
     <!-- 提交批改结果模态框 (包含统一标准评分与 AI 证据化诊断) -->
     <div id="gradeModal" class="modal-overlay hidden">

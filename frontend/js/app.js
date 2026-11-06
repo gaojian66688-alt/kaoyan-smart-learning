@@ -554,7 +554,7 @@ class KaoyanApp {
   }
 
   // ==================================================
-  // 点词与划词查义、短语适配及马克笔标记 (指令适配)
+  // 点词与划词查义、短语适配及马克笔标记 (指令适配与深度优化)
   // ==================================================
 
   handleTextSelection(e) {
@@ -575,7 +575,7 @@ class KaoyanApp {
       return;
     }
 
-    // 过滤：仅对 1 至 8 词、包含英文字母的选中文本提供浮动操作胶囊
+    // 过滤：仅对包含英文字母的选中文本提供浮动操作胶囊
     const words = rawText.split(/\s+/).filter(w => /[a-zA-Z]/.test(w));
     if (words.length < 1 || words.length > 8 || rawText.length > 60) {
       this.hideSelectionTooltip();
@@ -604,16 +604,20 @@ class KaoyanApp {
         return;
       }
 
+      // 记录时间戳与选中文本，用于拦截冒泡 click 事件
+      this.lastSelectionTimestamp = Date.now();
       this.pendingSelectedText = rawText;
       this.pendingSelectionContainer = parentEl;
 
       const tooltip = document.getElementById("phraseSelectionTooltip");
       if (tooltip) {
-        const isPhrase = words.length > 1;
-        tooltip.querySelector(".tooltip-text").innerText = isPhrase ? `🖍️ 标记短语: "${rawText}"` : `🔍 查词: "${rawText}"`;
+        const previewEl = document.getElementById("tooltipPreview");
+        if (previewEl) {
+          previewEl.innerText = `"${rawText}"`;
+        }
 
-        const top = Math.max(10, rect.top + window.scrollY - 44);
-        const left = Math.max(10, Math.min(window.innerWidth - 220, rect.left + window.scrollX));
+        const top = Math.max(10, rect.top + window.scrollY - 48);
+        const left = Math.max(10, Math.min(window.innerWidth - 260, rect.left + window.scrollX - 20));
         tooltip.style.top = `${top}px`;
         tooltip.style.left = `${left}px`;
         tooltip.classList.remove("hidden");
@@ -629,8 +633,10 @@ class KaoyanApp {
   }
 
   async onSelectionTooltipClick(e) {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     const text = this.pendingSelectedText;
     const container = this.pendingSelectionContainer;
     this.hideSelectionTooltip();
@@ -639,7 +645,88 @@ class KaoyanApp {
     }
   }
 
+  async onQuickMarkPhraseClick(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const text = this.pendingSelectedText;
+    const container = this.pendingSelectionContainer;
+    this.hideSelectionTooltip();
+    if (text) {
+      await this.quickMarkPhrase(text, container);
+    }
+  }
+
+  async quickMarkPhrase(phraseText, container) {
+    const cleanText = phraseText.replace(/^[^\w]+|[^\w]+$/g, '').trim();
+    if (!cleanText) return;
+
+    const lower = cleanText.toLowerCase();
+
+    // 捕获语境句子与出处
+    const parentPara = container ? container.closest(".passage-paragraph") : null;
+    const parentOption = container ? container.closest(".option-item") : null;
+    const parentStem = container ? container.closest(".question-stem") : null;
+
+    let contextSentence = "";
+    if (parentPara) {
+      const fullParaText = parentPara.innerText || "";
+      const sentences = fullParaText.split(/(?<=[.!?])\s+/);
+      const matched = sentences.find(s => s.toLowerCase().includes(lower));
+      contextSentence = (matched || fullParaText.slice(0, 150)).trim();
+    } else if (parentOption) {
+      const optText = parentOption.querySelector(".option-text")?.innerText || parentOption.innerText || "";
+      const qNum = parentOption.closest(".question-card")?.querySelector(".q-num")?.innerText || "";
+      const key = parentOption.querySelector(".option-key")?.innerText || "";
+      contextSentence = `[${qNum} 选项 ${key}] ${optText.trim()}`;
+    } else if (parentStem) {
+      contextSentence = `[题干] ${parentStem.innerText.trim()}`;
+    } else {
+      contextSentence = cleanText;
+    }
+
+    let source = `${this.currentGroupData?.exam_id || '考研真题'} ${this.currentGroupData?.title || ''}`;
+    if (contextSentence.startsWith("[")) {
+      const tagEnd = contextSentence.indexOf("]");
+      if (tagEnd > 0) source += ` (${contextSentence.slice(1, tagEnd)})`;
+    }
+
+    try {
+      const res = await fetch("/api/vocabulary/mark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          word: lower,
+          context_sentence: contextSentence,
+          source_info: source,
+          group_id: this.currentGroupId,
+          definition: "考研高频短语搭配 (马克笔高亮已标记)",
+          user_id: this.userId
+        })
+      });
+
+      if (res.ok) {
+        const savedData = await res.json();
+        this.savedVocabMap.set(lower, savedData);
+        this.applyMarkerHighlight(lower);
+        this.showToast(`🖍️ 已标记短语 "${lower}" 并纳入 FSRS`);
+      }
+    } catch (err) {
+      console.error("Quick mark phrase error:", err);
+    }
+  }
+
   async onWordClick(event, word) {
+    // 关键优化 1：若当前存在有效文本选区（用户正在划选短语或单词），禁止触发单字点击弹窗
+    const sel = window.getSelection();
+    if (sel && sel.toString().trim().length > 1) {
+      return;
+    }
+    // 关键优化 2：若 400ms 内刚释放划选，阻止误触 word-token 的 click
+    if (Date.now() - (this.lastSelectionTimestamp || 0) < 400) {
+      return;
+    }
     event.stopPropagation();
     await this.openLookupForText(word, event.target);
   }
@@ -658,6 +745,7 @@ class KaoyanApp {
     if (!cleanText) return;
 
     this.currentActiveWord = cleanText.toLowerCase();
+    this.currentActiveTargetSpan = targetSpan;
 
     // 捕获语境句子与来源出处
     const parentPara = targetSpan ? targetSpan.closest(".passage-paragraph") : null;
@@ -699,15 +787,13 @@ class KaoyanApp {
     document.getElementById("popoverSentence").innerText = this.currentActiveSentence;
 
     // 定位 fixed popover，保证在当前可视窗口内完整可见
-    const popoverHeight = 320;
+    const popoverHeight = 340;
     if (targetSpan && targetSpan.getBoundingClientRect) {
       const rect = targetSpan.getBoundingClientRect();
       let top = rect.bottom + 8;
       if (top + popoverHeight > window.innerHeight) {
-        // 视口下方空间不足时，浮动于点击元素上方
         top = Math.max(15, rect.top - popoverHeight - 8);
       }
-      // 双重约束：确保底部决不超出视口
       if (top + popoverHeight > window.innerHeight) {
         top = Math.max(15, window.innerHeight - popoverHeight - 20);
       }
@@ -720,8 +806,11 @@ class KaoyanApp {
     }
     popover.classList.remove("hidden");
 
-    // 检测语境中是否有连带高频短语推荐
-    this.renderPhraseSuggestions(cleanText, contextSentence);
+    // 展现微调控制器 (无论单生词还是短语均支持一键微调范围)
+    const rangeAdjuster = document.getElementById("popoverRangeAdjuster");
+    if (rangeAdjuster) {
+      rangeAdjuster.style.display = "flex";
+    }
 
     const saveBtn = document.getElementById("btnSaveWord");
     const unmarkBtn = document.getElementById("btnUnmarkWord");
@@ -731,24 +820,24 @@ class KaoyanApp {
     if (isAlreadySaved) {
       saveBtn.innerText = "✓ 已在生词本 · 马克笔标记中";
       saveBtn.disabled = true;
-      if (unmarkBtn) {
-        unmarkBtn.style.display = "inline-block";
-      }
+      if (unmarkBtn) unmarkBtn.style.display = "inline-block";
     } else {
       saveBtn.innerText = isPhrase ? "🖍️ 马克笔标记短语 · 纳入 FSRS" : "🖍️ 马克笔标记单词 · 纳入 FSRS";
       saveBtn.disabled = false;
-      if (unmarkBtn) {
-        unmarkBtn.style.display = "none";
-      }
+      if (unmarkBtn) unmarkBtn.style.display = "none";
     }
 
     if (!isMock) {
       try {
-        const res = await fetch(`/api/vocabulary/lookup?word=${encodeURIComponent(this.currentActiveWord)}&user_id=${this.userId}`);
+        const queryUrl = `/api/vocabulary/lookup?word=${encodeURIComponent(this.currentActiveWord)}&sentence=${encodeURIComponent(contextSentence)}&user_id=${this.userId}`;
+        const res = await fetch(queryUrl);
         if (res.ok) {
           const data = await res.json();
           document.getElementById("popoverPhonetic").innerText = data.phonetic ? (data.phonetic.startsWith("[") ? data.phonetic : `/${data.phonetic}/`) : (isPhrase ? "[短语搭配]" : "");
           document.getElementById("popoverMeaning").innerText = data.meaning;
+
+          // 渲染智能语境短语探测结果
+          this.renderSmartPhraseDetections(data.detected_phrases || []);
         }
       } catch (e) {
         console.error("Word/phrase lookup error:", e);
@@ -756,34 +845,104 @@ class KaoyanApp {
     }
   }
 
-  renderPhraseSuggestions(word, sentence) {
-    const container = document.getElementById("popoverPhraseSuggestions");
-    if (!container) return;
+  renderSmartPhraseDetections(detectedPhrases) {
+    const box = document.getElementById("popoverPhraseDetection");
+    if (!box) return;
 
-    if (word.includes(" ") || !sentence) {
-      container.style.display = "none";
-      container.innerHTML = "";
+    if (!detectedPhrases || detectedPhrases.length === 0) {
+      box.style.display = "none";
+      box.innerHTML = "";
       return;
     }
 
-    // 在语境句子中寻找从当前单词开始的 2-3 词连续搭配
-    const regex = new RegExp(`\\b${word}\\s+([a-zA-Z]+(?:\\s+[a-zA-Z]+)?)`, "i");
-    const match = sentence.match(regex);
-    if (match && match[0] && match[0].toLowerCase() !== word.toLowerCase()) {
-      const suggestedPhrase = match[0].trim();
-      container.innerHTML = `
-        <span class="phrase-sug-label">💡 扩展为短语：</span>
-        <button class="phrase-sug-chip" onclick="app.switchToPhrase('${suggestedPhrase}')">${suggestedPhrase}</button>
+    let itemsHtml = `
+      <div class="detection-header">
+        <span>💡 语境中识别到高频真题短语：</span>
+      </div>
+    `;
+
+    detectedPhrases.forEach(item => {
+      const isSaved = this.savedVocabMap && this.savedVocabMap.has(item.phrase);
+      itemsHtml += `
+        <div class="detected-phrase-item">
+          <div class="phrase-name-wrap">
+            <span class="detected-phrase-text">${item.phrase}</span>
+            <span class="detected-phrase-mean">${item.meaning}</span>
+          </div>
+          <button class="btn-detect-mark" onclick="app.quickMarkDetectedPhrase('${item.phrase}', '${item.meaning.replace(/'/g, "\\'")}')">
+            ${isSaved ? "✓ 已标记" : "🖍️ 一键标记"}
+          </button>
+        </div>
       `;
-      container.style.display = "flex";
-    } else {
-      container.style.display = "none";
-      container.innerHTML = "";
+    });
+
+    box.innerHTML = itemsHtml;
+    box.style.display = "block";
+  }
+
+  async quickMarkDetectedPhrase(phrase, meaning) {
+    await this.quickMarkPhrase(phrase, this.currentActiveTargetSpan);
+    // 标记后直接切换到该短语视图
+    await this.openLookupForText(phrase, this.currentActiveTargetSpan);
+  }
+
+  async adjustPhraseRange(action) {
+    const sentence = this.currentActiveSentence || "";
+    if (!sentence) return;
+
+    // 分离当前句中所有单词与标点
+    const sentenceWords = sentence.match(/\b[a-zA-Z]+(?:'[a-zA-Z]+)?\b/g) || [];
+    if (sentenceWords.length === 0) return;
+
+    const currentWords = this.currentActiveWord.split(/\s+/);
+
+    // 在语境句子单词序列中定位当前选中短语的起止索引
+    let startIdx = -1;
+    for (let i = 0; i <= sentenceWords.length - currentWords.length; i++) {
+      let isMatch = true;
+      for (let j = 0; j < currentWords.length; j++) {
+        if (sentenceWords[i + j].toLowerCase() !== currentWords[j].toLowerCase()) {
+          isMatch = false;
+          break;
+        }
+      }
+      if (isMatch) {
+        startIdx = i;
+        break;
+      }
     }
+
+    if (startIdx === -1) {
+      // 容错：若未严格匹配，尝试单个单词定位
+      const firstWord = currentWords[0].toLowerCase();
+      startIdx = sentenceWords.findIndex(w => w.toLowerCase() === firstWord);
+      if (startIdx === -1) return;
+    }
+
+    let endIdx = Math.min(sentenceWords.length - 1, startIdx + currentWords.length - 1);
+
+    if (action === "expand-left" && startIdx > 0) {
+      startIdx--;
+    } else if (action === "shrink-left" && startIdx < endIdx) {
+      startIdx++;
+    } else if (action === "shrink-right" && endIdx > startIdx) {
+      endIdx--;
+    } else if (action === "expand-right" && endIdx < sentenceWords.length - 1) {
+      endIdx++;
+    }
+
+    const newPhrase = sentenceWords.slice(startIdx, endIdx + 1).join(" ");
+    await this.openLookupForText(newPhrase, this.currentActiveTargetSpan);
+  }
+
+  renderPhraseSuggestions(word, sentence) {
+    const container = document.getElementById("popoverPhraseSuggestions");
+    if (!container) return;
+    container.style.display = "none";
   }
 
   async switchToPhrase(phrase) {
-    await this.openLookupForText(phrase, null);
+    await this.openLookupForText(phrase, this.currentActiveTargetSpan);
   }
 
   closeWordPopover() {
@@ -793,6 +952,17 @@ class KaoyanApp {
     }
     const popover = document.getElementById("wordPopover");
     if (popover) popover.classList.add("hidden");
+  }
+
+  showToast(msg) {
+    const toast = document.getElementById("appToast");
+    if (!toast) return;
+    toast.innerText = msg;
+    toast.classList.remove("hidden");
+    if (this.toastTimeout) clearTimeout(this.toastTimeout);
+    this.toastTimeout = setTimeout(() => {
+      toast.classList.add("hidden");
+    }, 2200);
   }
 
   async saveCurrentWord() {
@@ -833,6 +1003,7 @@ class KaoyanApp {
 
         // 立即向文章和选项中应用马克笔高亮
         this.applyMarkerHighlight(this.currentActiveWord);
+        this.showToast(`🖍️ 已标记 "${this.currentActiveWord}" 并纳入 FSRS`);
 
         if (this.popoverCloseTimeout) clearTimeout(this.popoverCloseTimeout);
         this.popoverCloseTimeout = setTimeout(() => this.closeWordPopover(), 1000);
@@ -851,6 +1022,7 @@ class KaoyanApp {
       if (res.ok) {
         this.savedVocabMap.delete(this.currentActiveWord);
         this.removeMarkerHighlight(this.currentActiveWord);
+        this.showToast(`🗑️ 已取消标记 "${this.currentActiveWord}"`);
         this.closeWordPopover();
       }
     } catch (e) {
@@ -866,11 +1038,16 @@ class KaoyanApp {
         el.classList.add("marker-highlight", "saved-word");
       });
     } else {
-      // 短语：重新渲染当前题组的文章与选项以精准应用短语马克笔高亮
-      if (this.currentGroupData) {
+      // 短语：仅局部重新渲染文章材料，不重绘题目列表，不打断作答与输入框状态
+      if (this.currentGroupData && this.currentGroupData.passage_text) {
         this.renderPassage(this.currentGroupData.passage_text);
-        this.renderQuestions(this.currentGroupData.questions);
       }
+      // 对选项中的文本实施非破坏性重新高亮
+      document.querySelectorAll(".option-item .option-text").forEach(optEl => {
+        const raw = optEl.getAttribute("data-raw") || optEl.innerText;
+        if (!optEl.hasAttribute("data-raw")) optEl.setAttribute("data-raw", raw);
+        optEl.innerHTML = this.tokenizeWords(raw);
+      });
     }
   }
 
@@ -881,10 +1058,14 @@ class KaoyanApp {
         el.classList.remove("marker-highlight", "saved-word");
       });
     } else {
-      if (this.currentGroupData) {
+      if (this.currentGroupData && this.currentGroupData.passage_text) {
         this.renderPassage(this.currentGroupData.passage_text);
-        this.renderQuestions(this.currentGroupData.questions);
       }
+      document.querySelectorAll(".option-item .option-text").forEach(optEl => {
+        const raw = optEl.getAttribute("data-raw") || optEl.innerText;
+        if (!optEl.hasAttribute("data-raw")) optEl.setAttribute("data-raw", raw);
+        optEl.innerHTML = this.tokenizeWords(raw);
+      });
     }
   }
 

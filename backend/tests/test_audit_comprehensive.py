@@ -322,5 +322,23 @@ class TestAuditComprehensive(unittest.TestCase):
         res_lookup_after = client.get("/api/vocabulary/lookup", params={"word": "rely on", "user_id": test_user})
         self.assertFalse(res_lookup_after.json()["is_saved"])
 
+        # 7. 智能短语语境探测 (查询单个词 pull，自动探测所在句的高频考研短语 pull out of)
+        sample_sent = "The Romans began to pull out of Scotland, leaving behind a curious treasure."
+        res_detect = client.get("/api/vocabulary/lookup", params={"word": "pull", "sentence": sample_sent, "user_id": test_user})
+        self.assertEqual(res_detect.status_code, 200)
+        detected_list = res_detect.json().get("detected_phrases", [])
+        detected_phrases = [d["phrase"] for d in detected_list]
+        self.assertIn("pull out of", detected_phrases)
+
+        # 8. 短语词典精准匹配与未收录短语智能拆解合成
+        res_phrase = client.get("/api/vocabulary/lookup", params={"word": "curious treasure", "user_id": test_user})
+        self.assertEqual(res_phrase.status_code, 200)
+        self.assertTrue("宝藏" in res_phrase.json()["meaning"] or "奇特" in res_phrase.json()["meaning"])
+
+        # 9. 任意未录入短语的词意智能拆解构成 (如 curious traveler)
+        res_synth = client.get("/api/vocabulary/lookup", params={"word": "curious traveler", "user_id": test_user})
+        self.assertEqual(res_synth.status_code, 200)
+        self.assertIn("curious", res_synth.json()["meaning"])
+
 if __name__ == "__main__":
     unittest.main()
