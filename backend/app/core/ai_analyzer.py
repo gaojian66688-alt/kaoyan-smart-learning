@@ -93,10 +93,13 @@ class EvidenceBasedAIAnalyzer:
                     "status": "wrong"
                 })
 
-        # 2. 宏观诊断与个性化建议 (分层)
+        # 2. 宏观诊断与个性化建议 (分层，依据实际板块和试卷动态生成报告标题)
         if sub.scope == "group":
+            from app.models.exam import QuestionGroup
+            grp = db.query(QuestionGroup).filter(QuestionGroup.id == sub.scope_id).first()
+            unit_title = grp.title if grp else "单篇练习"
             summary = (
-                f"单篇练习诊断报告：本单元共 {total_questions} 题，答对 {sub.correct_count} 题，"
+                f"【{unit_title}】单篇深度诊断报告：本单元共 {total_questions} 题，答对 {sub.correct_count} 题，"
                 f"得分 {sub.total_score}/{sub.max_score} 分 (正确率 {sub.accuracy}%)。"
             )
             if wrong_results:
@@ -105,17 +108,27 @@ class EvidenceBasedAIAnalyzer:
             else:
                 recommendations.append("表现优异：本篇关键定位与逻辑链条均把握准确，建议保持节奏并训练计时速度。")
         elif sub.scope == "section":
+            from app.models.exam import Section
+            sec = db.query(Section).filter(Section.id == sub.scope_id).first()
+            sec_title = sec.title if sec else "板块"
             summary = (
-                f"Section II 板块诊断报告：板块总得分 {sub.total_score}/{sub.max_score} 分，"
+                f"【{sec_title}】板块诊断报告：板块总得分 {sub.total_score}/{sub.max_score} 分"
+                f"（客观分 {sub.objective_score or 0.0} 分，主观分 {sub.subjective_score or 0.0} 分），"
                 f"总题数 {total_questions} 题，错误题数 {len(wrong_results)}。"
             )
             recommendations.append("板块复盘：对比不同文章的失分分布，重点防范同类题型 (如推理题) 的连续失分。")
+            if (sub.subjective_score or 0.0) > 0:
+                recommendations.append("主观题提升：主观题估分结合考纲标准分档，建议对照评分点修正词汇拼写与语法从句。")
         else:
+            from app.models.exam import Exam
+            ex = db.query(Exam).filter(Exam.id == sub.scope_id).first()
+            exam_title = ex.title if ex else "整卷"
             summary = (
-                f"整卷诊断报告：整卷客观题得分 {sub.total_score}/{sub.max_score} 分，"
+                f"【{exam_title}】全卷综合诊断报告：整卷总分 {sub.total_score}/{sub.max_score} 分"
+                f"（客观确定分 {sub.objective_score or 0.0} 分，主观 AI 估分 {sub.subjective_score or 0.0} 分），"
                 f"整体正确率 {sub.accuracy}%。"
             )
-            recommendations.append("整卷策略建议：平衡各题型作答时间分配，先攻稳细节题，最后攻克长难句推理。")
+            recommendations.append("整卷策略建议：平衡各题型作答时间分配，先攻稳客观题，预留充足时间给主观翻译与写作。")
 
         report_id = str(uuid.uuid4())
         report = AIReportRecord(

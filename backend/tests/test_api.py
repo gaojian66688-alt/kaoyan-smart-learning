@@ -62,11 +62,62 @@ class TestAPIEndpoints(unittest.TestCase):
         res_sub = self.client.post("/api/practice/submit", json={
             "attempt_id": att_id,
             "scope": "group",
-            "scope_id": "2024-en1-text-1",
+            "scope_id": "2024-english-1-reading-text-1",
             "user_id": "mock_tester"
         })
         self.assertEqual(res_sub.status_code, 403)
         self.assertIn("严格模考模式下屏蔽单篇及板块批改", res_sub.json()["detail"])
+
+    def test_section_submission_flow(self):
+        """验收项 8: 板块批改入口与后端处理流程正常可用"""
+        user_id = "section_tester_user"
+        # 1. 开启综合训练整卷会话
+        res_att = self.client.post("/api/practice/attempt", json={
+            "mode": "practice_full",
+            "target_type": "exam",
+            "target_id": "2024-english-1",
+            "user_id": user_id
+        })
+        self.assertEqual(res_att.status_code, 200)
+        att_id = res_att.json()["id"]
+
+        # 2. 保存 Reading A Text 1 的答案
+        res_save = self.client.post("/api/practice/save", json={
+            "attempt_id": att_id,
+            "responses": [
+                {"question_id": "2024-english-1-text1-q21", "user_answer": "D"},
+                {"question_id": "2024-english-1-text1-q22", "user_answer": "D"},
+                {"question_id": "2024-english-1-text1-q23", "user_answer": "A"},
+                {"question_id": "2024-english-1-text1-q24", "user_answer": "B"},
+                {"question_id": "2024-english-1-text1-q25", "user_answer": "A"},
+            ]
+        })
+        self.assertEqual(res_save.status_code, 200)
+
+        # 3. 执行板块批改 (scope='section', scope_id='2024-english-1-sec-reading-a')
+        res_sec_sub = self.client.post("/api/practice/submit", json={
+            "attempt_id": att_id,
+            "scope": "section",
+            "scope_id": "2024-english-1-sec-reading-a",
+            "user_id": user_id
+        })
+        self.assertEqual(res_sec_sub.status_code, 200)
+        sub_data = res_sec_sub.json()
+        self.assertEqual(sub_data["scope"], "section")
+        self.assertEqual(sub_data["scope_id"], "2024-english-1-sec-reading-a")
+        self.assertEqual(sub_data["question_count"], 20) # Reading A 共 4 篇 20 题
+        self.assertEqual(sub_data["correct_count"], 5)  # Text 1 全对 (5题)
+        self.assertEqual(sub_data["total_score"], 10.0) # 5 * 2.0 = 10.0 分
+
+        # 4. 验证会话仍然处于 in_progress 状态，考生可继续作答其他板块
+        res_resume = self.client.post("/api/practice/attempt", json={
+            "mode": "practice_full",
+            "target_type": "exam",
+            "target_id": "2024-english-1",
+            "user_id": user_id
+        })
+        self.assertEqual(res_resume.status_code, 200)
+        self.assertEqual(res_resume.json()["status"], "in_progress")
 
 if __name__ == "__main__":
     unittest.main()

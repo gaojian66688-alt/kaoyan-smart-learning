@@ -12,7 +12,11 @@ class Settings(BaseModel):
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/kaoyan_learning.db")
     
-    # Desktop Kaoyan Vocab DB reference (if available)
+    # Vocabulary Database resolution: env var -> repo bundled -> desktop fallback
+    VOCAB_DB_PATH: str = os.getenv(
+        "VOCAB_DB_PATH",
+        str(BASE_DIR / "app" / "data" / "kaoyan_vocab.db")
+    )
     DESKTOP_VOCAB_DB: str = os.getenv(
         "DESKTOP_VOCAB_DB",
         r"C:\Users\Administrator\Desktop\KaoyanVocab\data\kaoyan_vocab.db"

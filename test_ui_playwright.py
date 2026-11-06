@@ -19,14 +19,14 @@ def run_ui_test():
         time.sleep(1)
 
         # 3. 验证板块切换：切换到【完形填空】
-        cloze_btn = page.locator("button.sec-btn:has-text('Use')").first
+        cloze_btn = page.locator("button.sec-btn[data-gid='2024-english-1-cloze-group']").first
         if cloze_btn.count() > 0:
             cloze_btn.click()
             time.sleep(1)
             print("2. Cloze section loaded.")
 
         # 4. 验证板块切换：切换到【英译汉】
-        trans_btn = page.locator("button.sec-btn:has-text('Translation')").first
+        trans_btn = page.locator("button.sec-btn[data-gid='2024-english-1-trans-group']").first
         if trans_btn.count() > 0:
             trans_btn.click()
             time.sleep(1)
@@ -44,7 +44,7 @@ def run_ui_test():
         print(f"4. Strict mock countdown timer verified: {timer_text}")
 
         # 6. 在模考模式下点击单词，验证释义被隐藏
-        word_span = page.locator(".word-token:has-text('scientific')").first
+        word_span = page.locator(".word-token:has-text('Romans')").first
         if word_span.count() > 0:
             word_span.click()
             time.sleep(0.5)
@@ -57,14 +57,18 @@ def run_ui_test():
         # 7. 切换回【专项训练】并测试题型定位筛选 (AT-03)
         page.click("button.pill-btn[data-mode='special_training']")
         time.sleep(0.5)
-        read_btn = page.locator("button.sec-btn:has-text('Text 1')").first
+        read_btn = page.locator("button.sec-btn[data-gid='2024-english-1-reading-text-1']").first
         if read_btn.count() > 0:
             read_btn.click()
             time.sleep(1)
-            # 点击“推理题”筛选
+            # 点击“推理题”筛选 (AT-03)
             page.click("button.cat-pill[data-cat='inference']")
             time.sleep(0.5)
             print("6. Special training inference filter verified (AT-03).")
+
+            # 恢复“全部题目”筛选以展示完整试卷题目
+            page.click("button.cat-pill[data-cat='all']")
+            time.sleep(0.5)
 
             # 7b. 验证【文章与选项中单词、短语查词，马克笔高亮标记与点击适配】
             # 7b-1: 点击选项中的单词查词，并验证不会误触选项单选状态
@@ -96,10 +100,10 @@ def run_ui_test():
                 time.sleep(0.3)
 
             # 7b-2: 验证文章与选项中【短语查词、马克笔高亮与取消标记】
-            # 在文章中标记真实真题短语 "remote communication"
-            page.evaluate("app.openLookupForText('remote communication', document.querySelector('.passage-paragraph'))")
+            # 在文章中标记真实真题短语 "curious treasure"
+            page.evaluate("app.openLookupForText('curious treasure', document.querySelector('.passage-paragraph'))")
             time.sleep(0.5)
-            assert "remote communication" in page.locator("#popoverWord").inner_text().lower()
+            assert "curious treasure" in page.locator("#popoverWord").inner_text().lower()
             assert "短语" in page.locator("#popoverTypeTag").inner_text()
             btn_save = page.locator("#btnSaveWord")
             if btn_save.is_enabled():
@@ -107,23 +111,23 @@ def run_ui_test():
                 time.sleep(0.6)
             
             # 验证文章中短语已被马克笔高亮 (phrase-marker marker-highlight)
-            phrase_marker_art = page.locator(".passage-article .phrase-marker.marker-highlight:has-text('remote communication')")
+            phrase_marker_art = page.locator(".passage-article .phrase-marker.marker-highlight:has-text('curious treasure')")
             assert phrase_marker_art.count() > 0, "Passage phrase must be highlighted with phrase-marker and marker-highlight"
-            print("6b-2. Article phrase 'remote communication' marker pen highlight verified.")
+            print("6b-2. Article phrase 'curious treasure' marker pen highlight verified.")
             page.click(".popover-close")
             time.sleep(1.2)
 
-            # 在选项中标记真实真题短语 "foster structured"
-            page.evaluate("app.openLookupForText('foster structured', document.querySelector('.option-item'))")
+            # 在选项中标记真实真题短语 "future use"
+            page.evaluate("app.openLookupForText('future use', document.querySelector('.option-item'))")
             time.sleep(0.5)
-            assert "foster structured" in page.locator("#popoverWord").inner_text().lower()
+            assert "future use" in page.locator("#popoverWord").inner_text().lower()
             btn_save_opt = page.locator("#btnSaveWord")
             if btn_save_opt.is_enabled():
                 btn_save_opt.click()
                 time.sleep(1.2)
-            phrase_marker_opt = page.locator(".option-item .phrase-marker.marker-highlight:has-text('foster structured')").first
+            phrase_marker_opt = page.locator(".option-item .phrase-marker.marker-highlight:has-text('future use')").first
             assert phrase_marker_opt.count() > 0, "Option phrase must be highlighted with phrase-marker and marker-highlight"
-            print("6b-3. Option phrase 'foster structured' marker pen highlight verified.")
+            print("6b-3. Option phrase 'future use' marker pen highlight verified.")
 
             # 点击已标记的短语并测试取消标记 (Unmark)
             phrase_marker_opt.click()
@@ -133,19 +137,23 @@ def run_ui_test():
             unmark_btn.click()
             time.sleep(0.5)
             print("6b-4. Phrase unmark and marker removal verified.")
+            pop_close = page.locator(".popover-close")
+            if pop_close.is_visible():
+                pop_close.click()
+                time.sleep(0.5)
 
             # 7c. 自动化测试批改后解析交互：错题自动展开、正确题折叠并提供展开按钮 (Prompt #9 核心要求)
             page.on("dialog", lambda dialog: dialog.accept())
             
-            # 答题：Q21 选 D (正确)，Q22 选 C (错误，标准为 D)
-            q21_opt_d = page.locator("#q-card-2024-english-1-text1-q21 .option-item[data-key='D']")
-            if q21_opt_d.count() > 0:
-                q21_opt_d.click()
-                time.sleep(0.3)
-            q22_opt_c = page.locator("#q-card-2024-english-1-text1-q22 .option-item[data-key='C']")
-            if q22_opt_c.count() > 0:
-                q22_opt_c.click()
-                time.sleep(0.3)
+            # 答题：Q21 选 D (正确)，Q22 选 C (错误，标准为 D) - 点击选项序号或非单词区域确认选中
+            q21_key_d = page.locator("#q-card-2024-english-1-text1-q21 .option-item[data-key='D'] .option-key")
+            assert q21_key_d.count() > 0, "Q21 option D key not found"
+            q21_key_d.click()
+            time.sleep(0.3)
+            q22_key_c = page.locator("#q-card-2024-english-1-text1-q22 .option-item[data-key='C'] .option-key")
+            assert q22_key_c.count() > 0, "Q22 option C key not found"
+            q22_key_c.click()
+            time.sleep(0.3)
 
             # 点击提交本组练习批改
             page.click("#btnSubmitGroup")

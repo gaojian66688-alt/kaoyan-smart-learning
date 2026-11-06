@@ -140,30 +140,34 @@ class KaoyanApp {
     });
 
     const submitGroupBtn = document.getElementById("btnSubmitGroup");
+    const submitSectionBtn = document.getElementById("btnSubmitSection");
     const submitExamBtn = document.getElementById("btnSubmitExam");
     const catFilterRow = document.getElementById("categoryFilterRow");
     const tipEl = document.getElementById("passageTip");
 
     if (mode === "strict_mock") {
-      // 严格模考模式：倒计时 180 分钟，屏蔽单篇交卷，屏蔽模考查词辅助
+      // 严格模考模式：倒计时 180 分钟，屏蔽单篇及板块批改，仅允许整卷交卷
       submitGroupBtn.style.display = "none";
+      if (submitSectionBtn) submitSectionBtn.style.display = "none";
       submitExamBtn.style.display = "inline-block";
       catFilterRow.style.display = "none";
       tipEl.innerText = "⚠️ 严格模拟考试：全真限时180分钟，交卷后统一批改；点击生词仅打标收录，屏蔽即时释义以防辅助。";
       this.startStrictMockTimer();
     } else if (mode === "practice_full") {
-      // 日常整卷：保留全题型，单篇与整卷交卷均可用
+      // 日常整卷：保留全题型，单篇、板块与整卷交卷均可用
       submitGroupBtn.style.display = "inline-block";
+      if (submitSectionBtn) submitSectionBtn.style.display = "inline-block";
       submitExamBtn.style.display = "inline-block";
       catFilterRow.style.display = "none";
-      tipEl.innerText = "💡 日常整卷模式：支持多板块自由切换作答，支持单篇即时批改或整卷统一交卷。";
+      tipEl.innerText = "💡 日常整卷模式：支持多板块自由切换作答，支持完成单篇后批改、完成整个板块后统一批改或整卷统一批改。";
       this.startCountupTimer();
     } else {
-      // 专项训练：支持题型细分，单篇批改
+      // 专项训练：支持题型细分，单篇批改与板块统批
       submitGroupBtn.style.display = "inline-block";
+      if (submitSectionBtn) submitSectionBtn.style.display = "inline-block";
       submitExamBtn.style.display = "none";
       catFilterRow.style.display = "flex";
-      tipEl.innerText = "💡 专项训练模式：点击任意英文单词可即时查词并加入生词本，支持按题型高亮训练。";
+      tipEl.innerText = "💡 专项训练模式：点击任意英文单词或短语可即时查词并加入生词本，支持单篇或板块批改。";
       this.startCountupTimer();
     }
 
@@ -889,8 +893,23 @@ class KaoyanApp {
   // ==================================================
 
   async confirmSubmit(scope = "group") {
-    const targetId = (scope === "exam" ? this.currentExamId : this.currentGroupId);
-    const scopeName = (scope === "exam" ? "整卷" : "当前单元");
+    let targetId = this.currentGroupId;
+    let scopeName = "当前单元";
+
+    if (scope === "exam") {
+      targetId = this.currentExamId;
+      scopeName = "整卷";
+    } else if (scope === "section") {
+      scopeName = "当前板块";
+      if (this.currentExam && this.currentExam.sections) {
+        for (const sec of this.currentExam.sections) {
+          if (sec.question_groups && sec.question_groups.some(g => g.id === this.currentGroupId)) {
+            targetId = sec.id;
+            break;
+          }
+        }
+      }
+    }
 
     const proceed = confirm(`本次提交将锁定 ${scopeName} 作答并由统一内核评分。确认提交吗？`);
     if (!proceed) return;

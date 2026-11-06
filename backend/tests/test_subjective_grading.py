@@ -123,5 +123,32 @@ class TestSubjectiveGrading(unittest.TestCase):
         self.assertIn("一档", gr_51.score_band)
         self.assertGreaterEqual(gr_51.score, 8.0)
 
+    def test_subjective_evaluation_not_only_word_count(self):
+        """验收规则 9: 主观题评分不能只依据词数和段落数量，必须综合考量词汇多样性、逻辑连贯性与语义准确度"""
+        ak_write = self.db.query(AnswerKey).filter(AnswerKey.question_id == "2024-english-1-writing-q52").first()
+        self.assertIsNotNone(ak_write)
+
+        # 测试场景 1：机械重复 180 词（反复复制 'good'，分 3 段）
+        repetitive_text = ("good " * 60 + "\n\n") * 3
+        score, band, feedback = SubjectiveEvaluator.evaluate_writing(repetitive_text, ak_write, max_score=20.0)
+        
+        # 核心断言：虽然词数达到 180 词且分为 3 段，但由于词汇多样性接近于 0 且无逻辑词，被判定为机械重复并惩罚至低分档
+        self.assertLessEqual(score, 5.0)
+        self.assertIn("机械重复", band)
+        self.assertIn("词汇丰富度极低", feedback)
+
+        # 测试场景 2：翻译未作答或无有效汉字，不得给出虚假分数
+        ak_trans = self.db.query(AnswerKey).filter(AnswerKey.question_id == "2024-english-1-trans-q46").first()
+        self.assertIsNotNone(ak_trans)
+
+        empty_score, empty_band, empty_feedback = SubjectiveEvaluator.evaluate_translation("   ", ak_trans, max_score=2.0)
+        self.assertEqual(empty_score, 0.0)
+        self.assertEqual(empty_band, "未作答")
+        self.assertIn("缺乏评分依据", empty_feedback)
+
+        nonsense_score, nonsense_band, _ = SubjectiveEvaluator.evaluate_translation("abc def 123", ak_trans, max_score=2.0)
+        self.assertEqual(nonsense_score, 0.0)
+        self.assertEqual(nonsense_band, "缺乏评分依据")
+
 if __name__ == "__main__":
     unittest.main()

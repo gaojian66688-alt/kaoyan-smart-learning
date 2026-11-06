@@ -60,7 +60,7 @@ class TestAuditComprehensive(unittest.TestCase):
         total_q = self.db.query(Question).count()
         total_ak = self.db.query(AnswerKey).count()
         self.assertEqual(total_q, total_ak, f"Question count {total_q} != AnswerKey count {total_ak}")
-        self.assertEqual(total_q, 2156, f"Expected exactly 2156 questions across 43 exams, got {total_q}")
+        self.assertEqual(total_q, 52, f"Expected exactly 52 authentic questions for verified 2024 English I, got {total_q}")
 
         # 逐题核实外键对应与内容完整度
         questions = self.db.query(Question).all()
@@ -70,9 +70,10 @@ class TestAuditComprehensive(unittest.TestCase):
             self.assertTrue(len(ak.correct_answer.strip()) > 0, f"Question {q.id} answer is empty")
             self.assertTrue(len(ak.explanation.strip()) > 0, f"Question {q.id} explanation is empty")
             self.assertFalse(ak.explanation.startswith("null"))
+            self.assertNotEqual(ak.verifier, "Official Verification Panel", "Banned fake verifier found")
 
     def test_audit_question_numbering_continuity(self):
-        """审计项 3: 每套试卷内部题目编号严格连续、不跳号、不重号"""
+        """审计项 3: 已上线试卷内部题目编号严格连续、不跳号、不重号；待上线试卷绝不填充假题"""
         all_exams = self.db.query(Exam).all()
         for ex in all_exams:
             all_q_nums = []
@@ -81,18 +82,17 @@ class TestAuditComprehensive(unittest.TestCase):
                     for q in grp.questions:
                         all_q_nums.append(q.question_num)
             
-            # 排序后检查连续性
             all_q_nums.sort()
-            expected_nums = list(range(1, len(all_q_nums) + 1))
-            self.assertEqual(
-                all_q_nums, expected_nums,
-                f"Exam {ex.id} question numbers are not continuous or duplicate: {all_q_nums[:10]}..."
-            )
-            # 英语一必定 52 题，英语二必定 48 题
-            if ex.exam_type == "english_1":
+            if ex.status == "published":
+                expected_nums = list(range(1, len(all_q_nums) + 1))
+                self.assertEqual(
+                    all_q_nums, expected_nums,
+                    f"Exam {ex.id} question numbers are not continuous or duplicate: {all_q_nums[:10]}..."
+                )
                 self.assertEqual(len(all_q_nums), 52)
             else:
-                self.assertEqual(len(all_q_nums), 48)
+                # P0 规范：未核验试卷标记 offline，题目数必为 0
+                self.assertEqual(len(all_q_nums), 0, f"Offline exam {ex.id} must not contain unverified/fake questions")
 
     def test_audit_multi_tier_grading_consistency(self):
         """审计项 4: 单篇批改、板块批改与整卷批改使用同一评分内核与标准答案，结果绝对一致"""

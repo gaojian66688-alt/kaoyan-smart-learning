@@ -21,6 +21,24 @@ def create_or_resume_attempt(data: AttemptCreate, db: Session = Depends(get_db))
     创建或恢复作答会话。
     如果存在同用户、同目标且仍在作答中 (in_progress) 的会话，自动恢复，避免丢失未提交内容 (PRD 7.3)。
     """
+    # P0 真实性检查：未经过真实来源核验的题目和下线试卷不得进入正式练习
+    if data.target_type == "group":
+        from app.models.exam import QuestionGroup
+        grp = db.query(QuestionGroup).filter(QuestionGroup.id == data.target_id).first()
+        if not grp or grp.qa_status != "verified":
+            raise HTTPException(
+                status_code=403,
+                detail="该单元未经过真实来源核验 (Pending)，严禁开始作答！"
+            )
+    elif data.target_type == "exam":
+        from app.models.exam import Exam
+        ex = db.query(Exam).filter(Exam.id == data.target_id).first()
+        if not ex or ex.status != "published":
+            raise HTTPException(
+                status_code=403,
+                detail="该试卷无法证明真实性或未完成全量核验，已暂时下线，禁止进入练习！"
+            )
+
     existing = db.query(Attempt).filter(
         Attempt.user_id == data.user_id,
         Attempt.target_id == data.target_id,
@@ -92,6 +110,9 @@ def auto_save_responses(data: BatchResponseSave, db: Session = Depends(get_db)):
         clean_ans = item.user_answer.strip() if item.user_answer else None
 
         if resp:
+            if resp.is_final_snapshot:
+                # 已随单篇/板块批改锁定的答案快照不可篡改 (PRD P1 规则 1)
+                continue
             resp.user_answer = clean_ans
             resp.updated_at = utc_now()
         else:

@@ -119,7 +119,7 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
             {"question_id": "2024-english-1-text1-q22", "user_answer": "D"}, # 对
             {"question_id": "2024-english-1-text1-q23", "user_answer": "B"}, # 错 (标准为 A)
             {"question_id": "2024-english-1-text1-q24", "user_answer": "B"}, # 对
-            {"question_id": "2024-english-1-text1-q25", "user_answer": "C"}  # 对
+            {"question_id": "2024-english-1-text1-q25", "user_answer": "A"}  # 对 (2024 Text 1 Q25 标准答案为 A)
         ]
         res_save = self.client.post("/api/practice/save", json={
             "attempt_id": attempt_id,
@@ -175,7 +175,7 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
         res_ai = self.client.post(f"/api/analysis/generate/{submission_id}", params={"user_id": self.test_user})
         self.assertEqual(res_ai.status_code, 200)
         ai_data = res_ai.json()
-        self.assertIn("单篇练习诊断报告", ai_data["summary"])
+        self.assertIn("单篇深度诊断报告", ai_data["summary"])
         self.assertEqual(len(ai_data["evidence_items"]), 5)
         
         # 验证区分了 Fact 和 Hypothesis

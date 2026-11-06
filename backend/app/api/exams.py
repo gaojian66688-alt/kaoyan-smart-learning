@@ -59,6 +59,12 @@ def get_question_group(group_id: str, db: Session = Depends(get_db)):
     if not group:
         raise HTTPException(status_code=404, detail="Question group not found")
 
+    if group.qa_status != "verified":
+        raise HTTPException(
+            status_code=403,
+            detail=f"该题组当前审核状态为 [{group.qa_status}]，未经过真实来源核验，严禁进入正式练习！"
+        )
+
     questions = db.query(Question).filter(Question.group_id == group_id).order_by(Question.order_index).all()
     q_schemas = []
     for q in questions:

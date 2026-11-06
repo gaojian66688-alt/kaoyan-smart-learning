@@ -38,28 +38,44 @@ class TestFullQuestionBank2004To2026(unittest.TestCase):
             )
 
     def test_answers_and_explanations_transparent(self):
-        """验证所有题目均包含明确的标准答案、定位证据句与详实清晰的黄皮书式解析"""
-        questions = self.db.query(Question).all()
-        self.assertEqual(len(questions), 2156, "Expected exactly 2156 authentic questions")
+        """
+        PRD G01 & P0 真实性验证：
+        - 验证已上线真题 100% 具备权威标准答案、定位证据句、详细解析与真实核验人
+        - 验证严禁使用虚构假审核 'Official Verification Panel'
+        - 验证其余未完成逐题核验的试卷严格标记为 offline，绝不灌装虚假题目
+        """
+        published_exams = self.db.query(Exam).filter(Exam.status == "published").all()
+        self.assertEqual(len(published_exams), 1, "Only verified 2024 English I is published")
+        self.assertEqual(published_exams[0].id, "2024-english-1")
 
-        for q in questions[:200]: # 抽样检验深度
+        offline_exams = self.db.query(Exam).filter(Exam.status == "offline").all()
+        self.assertEqual(len(offline_exams), 42, "Expected 42 curriculum exams safely marked offline pending authentic data")
+
+        # 验证所有入库试题均为经核验真题
+        questions = self.db.query(Question).all()
+        self.assertEqual(len(questions), 52, "Expected exactly 52 authentic questions in 2024 English I")
+
+        for q in questions:
             keys = self.db.query(AnswerKey).filter(AnswerKey.question_id == q.id).all()
-            self.assertTrue(len(keys) >= 1, f"Question {q.id} (#{q.question_num}) lacks AnswerKey")
+            self.assertEqual(len(keys), 1, f"Question {q.id} (#{q.question_num}) lacks 1:1 AnswerKey")
             ak = keys[0]
             self.assertTrue(len(ak.correct_answer.strip()) > 0)
             self.assertTrue(len(ak.explanation.strip()) >= 20, f"Question {q.id} explanation too short")
+            self.assertNotEqual(ak.verifier, "Official Verification Panel", f"Question {q.id} contains banned fake verifier")
             if q.category != "subjective":
                 opts = q.get_options()
                 self.assertIn(len(opts), [4, 5, 7], f"Question {q.id} invalid options count: {len(opts)}")
 
     def test_content_qa_gate_all_groups_pass(self):
-        """验证全库 387 个题组均 100% 具备有效签名并顺利通过门禁发布校验"""
+        """PRD 6.2: 验证全库已上线题组 100% 具备有效签名并通过门禁校验"""
         groups = self.db.query(QuestionGroup).all()
-        self.assertEqual(len(groups), 387, "Expected exactly 387 authentic question groups across 43 exams")
+        self.assertEqual(len(groups), 9, "Expected exactly 9 verified question groups in published 2024 English I")
         
         for grp in groups:
             self.assertEqual(grp.qa_status, "verified", f"Group {grp.id} status is not verified")
             self.assertTrue(grp.qa_checksum and len(grp.qa_checksum) == 64, f"Group {grp.id} missing SHA-256 checksum")
+            res = ContentQAGate.validate_question_group(self.db, grp.id, record_logs=False)
+            self.assertTrue(res.is_valid, f"Group {grp.id} failed QA Gate validation: {res.errors}")
 
 if __name__ == "__main__":
     unittest.main()
