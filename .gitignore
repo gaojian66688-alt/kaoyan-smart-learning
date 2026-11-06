@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.env
+
+# Database (optional - keep seed db or ignore runtime db)
+# kaoyan_learning.db
+
+# Logs
+*.log
+.system_generated/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

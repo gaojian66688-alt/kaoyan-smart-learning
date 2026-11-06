@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>考研英语智能学习系统 - 官方真题与科学备考</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- 顶部导航栏 -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="logo-badge">考研英语</span>
+        <h1 class="app-title">智能学习系统</h1>
+      </div>
+      <div class="header-center exam-switcher">
+        <select id="examSelect" class="exam-dropdown">
+          <option value="2024-english-1">2024 英语（一）真题</option>
+          <option value="2024-english-2">2024 英语（二）真题</option>
+          <option value="2023-english-1">2023 英语（一）真题</option>
+        </select>
+      </div>
+      <div class="header-right">
+        <span id="autoSaveIndicator" class="autosave-tag idle">
+          <span class="dot"></span> <span class="text">就绪</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- 主体内容区域 -->
+    <main class="app-main">
+      <!-- 视图 1：首页仪表盘 -->
+      <section id="viewHome" class="view-panel active">
+        <div class="home-hero">
+          <div class="welcome-box">
+            <h2>欢迎备考考研英语</h2>
+            <p class="subtitle">真题训练 × 统一批改 × FSRS科学记忆 × 证据化分析</p>
+          </div>
+          <div class="quick-stats-row">
+            <div class="stat-card">
+              <span class="stat-num" id="homeTotalDone">0</span>
+              <span class="stat-label">已练题目</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num" id="homeAccuracy">0%</span>
+              <span class="stat-label">客观题正确率</span>
+            </div>
+            <div class="stat-card highlight">
+              <span class="stat-num" id="homeDueReviews">0</span>
+              <span class="stat-label">今日待复习生词</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num" id="homeStreak">1</span>
+              <span class="stat-label">连续备考天数</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-actions-grid">
+          <div class="action-card" onclick="app.navTo('practice', {mode: 'special_training'})">
+            <div class="action-icon">🎯</div>
+            <div class="action-info">
+              <h3>专项训练</h3>
+              <p>按篇章精读，原汁原味真题，支持点词查义与单篇批改</p>
+            </div>
+            <button class="action-btn">开始训练 →</button>
+          </div>
+
+          <div class="action-card" onclick="app.navTo('review')">
+            <div class="action-icon">🧠</div>
+            <div class="action-info">
+              <h3>FSRS 单词复习</h3>
+              <p>真题原句语境记忆，四档反馈驱动科学间隔调度</p>
+            </div>
+            <button class="action-btn">进入词卡 →</button>
+          </div>
+
+          <div class="action-card" onclick="app.navTo('mistakes')">
+            <div class="action-icon">📕</div>
+            <div class="action-info">
+              <h3>错题本复盘</h3>
+              <p>保留完整上下文，自标真实错因，杜绝同类题型再失分</p>
+            </div>
+            <button class="action-btn">查看错题 →</button>
+          </div>
+
+          <div class="action-card" onclick="app.navTo('practice', {mode: 'strict_mock'})">
+            <div class="action-icon">⏱️</div>
+            <div class="action-info">
+              <h3>严格整卷模拟</h3>
+              <p>限时整卷作答，屏蔽即时查词与单篇批改，全真考场体验</p>
+            </div>
+            <button class="action-btn">开启模考 →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 视图 2：刷题训练与阅读作答 -->
+      <section id="viewPractice" class="view-panel">
+        <div class="practice-toolbar">
+          <div class="mode-badge-wrap">
+            <span id="practiceModeBadge" class="mode-badge">专项训练</span>
+            <span id="readingTitleBadge" class="title-badge">Text 1</span>
+          </div>
+          <div class="timer-wrap">
+            ⏱️ <span id="timerDisplay">00:00</span>
+          </div>
+          <div class="toolbar-actions">
+            <button id="btnSubmitGroup" class="btn btn-primary" onclick="app.confirmSubmit('group')">
+              提交本篇批改
+            </button>
+          </div>
+        </div>
+
+        <!-- 读答分栏布局 (桌面左右分栏，移动端上下流畅滚动) -->
+        <div class="reading-workspace">
+          <!-- 左侧：真实真题文章 -->
+          <div class="passage-pane">
+            <div class="passage-header">
+              <span class="passage-source" id="passageSource">来源加载中...</span>
+              <span class="passage-tip">💡 提示：点击任意英文单词可即时查词并一键加入生词本</span>
+            </div>
+            <article class="passage-article" id="passageContent">
+              <!-- 文章段落与可点击单词动态渲染 -->
+            </article>
+          </div>
+
+          <!-- 右侧：原卷题目与选项 -->
+          <div class="questions-pane">
+            <div class="questions-header">
+              <h3>真题题目 (共 5 题，每题 2.0 分)</h3>
+            </div>
+            <div class="questions-list" id="questionsList">
+              <!-- 题目与 A/B/C/D 单选选项动态渲染 -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 视图 3：FSRS 单词与例句复习 -->
+      <section id="viewReview" class="view-panel">
+        <div class="review-workspace">
+          <div class="review-header">
+            <h2>FSRS 记忆卡片复习</h2>
+            <p>基于 Free Spaced Repetition Scheduler 算法调度 · 真题原句精准溯源</p>
+            <div class="review-progress-bar">
+              <span id="reviewQueueCount">待复习: 0</span>
+            </div>
+          </div>
+
+          <div class="flashcard-container" id="flashcardContainer">
+            <div class="flashcard" id="flashcard" onclick="app.flipCard()">
+              <!-- 正面：单词与音标 -->
+              <div class="card-face card-front">
+                <span class="card-tag">真题原词</span>
+                <h2 class="card-word" id="cardWord">loading...</h2>
+                <p class="card-phonetic" id="cardPhonetic">/ - /</p>
+                <div class="card-hint">👆 点击卡片翻面查看真题例句与释义</div>
+              </div>
+              <!-- 背面：当前真题释义与原句 -->
+              <div class="card-face card-back">
+                <span class="card-tag">真题语境义项</span>
+                <p class="card-definition" id="cardDefinition">释义加载中...</p>
+                
+                <div class="card-context-box">
+                  <span class="context-title">📌 真题原句溯源</span>
+                  <p class="context-sentence" id="cardSentence">例句加载中...</p>
+                  <span class="context-source" id="cardSource">来源</span>
+                </div>
+
+                <div class="fsrs-stats-preview" id="cardFsrsInfo">
+                  历史复习: 0 次 | 记忆稳定性: 0.0
+                </div>
+              </div>
+            </div>
+
+            <!-- FSRS 四档评分交互按钮 -->
+            <div class="fsrs-btn-group" id="fsrsBtnGroup">
+              <button class="fsrs-btn btn-again" onclick="app.submitFsrsRating(1)">
+                <span class="grade-name">1 忘记</span>
+                <span class="interval-hint">重新学习</span>
+              </button>
+              <button class="fsrs-btn btn-hard" onclick="app.submitFsrsRating(2)">
+                <span class="grade-name">2 困难</span>
+                <span class="interval-hint">+1.2 天</span>
+              </button>
+              <button class="fsrs-btn btn-good" onclick="app.submitFsrsRating(3)">
+                <span class="grade-name">3 记得</span>
+                <span class="interval-hint">+3.1 天</span>
+              </button>
+              <button class="fsrs-btn btn-easy" onclick="app.submitFsrsRating(4)">
+                <span class="grade-name">4 轻松</span>
+                <span class="interval-hint">+7.5 天</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 全部已收录生词列表 -->
+          <div class="all-vocab-section">
+            <h3>我的考研生词库 (<span id="totalVocabCount">0</span> 词)</h3>
+            <div class="vocab-list-table" id="vocabTable">
+              <!-- 词表动态渲染 -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 视图 4：错题本 -->
+      <section id="viewMistakes" class="view-panel">
+        <div class="mistakes-workspace">
+          <div class="mistakes-header">
+            <h2>考研英语错题本</h2>
+            <p>保留完整题组上下文 · 标记真实错因 · 针对性弱项突破</p>
+          </div>
+          <div class="mistakes-list" id="mistakesListContainer">
+            <!-- 错题卡片动态渲染 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 视图 5：个人学习档案与报告 -->
+      <section id="viewProfile" class="view-panel">
+        <div class="profile-workspace">
+          <div class="profile-header">
+            <h2>学习档案与数据中心</h2>
+            <p>真实作答留痕 · 全局能力看板 · 个性化备考规划</p>
+          </div>
+          <div class="profile-grid">
+            <div class="profile-card">
+              <h3>做题总题数</h3>
+              <p class="big-num" id="profTotalQuestions">0</p>
+              <span class="sub-text">客观题作答累计</span>
+            </div>
+            <div class="profile-card">
+              <h3>客观题正确率</h3>
+              <p class="big-num text-success" id="profAccuracy">0%</p>
+              <span class="sub-text">答对 / 答题总量</span>
+            </div>
+            <div class="profile-card">
+              <h3>真题生词收录</h3>
+              <p class="big-num text-primary" id="profTotalWords">0</p>
+              <span class="sub-text">关联真题原句</span>
+            </div>
+            <div class="profile-card">
+              <h3>FSRS 复习次数</h3>
+              <p class="big-num text-warning" id="profTotalReviews">0</p>
+              <span class="sub-text">科学间隔记忆</span>
+            </div>
+          </div>
+
+          <div class="today-plan-card">
+            <h3>📅 今日推荐备考计划</h3>
+            <ul class="plan-steps" id="planStepsList">
+              <!-- 今日计划动态渲染 -->
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 底部常驻导航栏 (移动端优先体验) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="viewHome" onclick="app.switchView('viewHome')">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">首页</span>
+      </button>
+      <button class="nav-item" data-view="viewPractice" onclick="app.switchView('viewPractice')">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">真题刷题</span>
+      </button>
+      <button class="nav-item" data-view="viewReview" onclick="app.switchView('viewReview')">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">FSRS背词</span>
+      </button>
+      <button class="nav-item" data-view="viewMistakes" onclick="app.switchView('viewMistakes')">
+        <span class="nav-icon">📕</span>
+        <span class="nav-label">错题本</span>
+      </button>
+      <button class="nav-item" data-view="viewProfile" onclick="app.switchView('viewProfile')">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">学习档案</span>
+      </button>
+    </nav>
+
+    <!-- 生词轻量弹窗 (点击单词即查) -->
+    <div id="wordPopover" class="word-popover hidden">
+      <div class="popover-header">
+        <h4 id="popoverWord">word</h4>
+        <span id="popoverPhonetic" class="popover-phonetic">/ - /</span>
+        <button class="popover-close" onclick="app.closeWordPopover()">×</button>
+      </div>
+      <div class="popover-body">
+        <p id="popoverMeaning" class="popover-meaning">释义加载中...</p>
+        <div class="popover-sentence-preview">
+          <span class="tag">当前语境</span>
+          <span id="popoverSentence">...</span>
+        </div>
+      </div>
+      <div class="popover-footer">
+        <button id="btnSaveWord" class="btn btn-sm btn-primary" onclick="app.saveCurrentWord()">
+          + 加入生词本 (纳入 FSRS)
+        </button>
+      </div>
+    </div>
+
+    <!-- 提交批改结果模态框 (包含统一标准评分与 AI 证据化诊断) -->
+    <div id="gradeModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>批改结果与 AI 证据化分析</h3>
+          <button class="modal-close" onclick="app.closeGradeModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="score-summary-bar">
+            <div class="score-col">
+              <span class="score-title">本次得分</span>
+              <span class="score-val" id="modalScore">0.0 / 10.0</span>
+            </div>
+            <div class="score-col">
+              <span class="score-title">正确率</span>
+              <span class="score-val" id="modalAccuracy">0%</span>
+            </div>
+            <div class="score-col">
+              <span class="score-title">批改层级</span>
+              <span class="score-val" id="modalScope">单篇批改</span>
+            </div>
+          </div>
+
+          <!-- 逐题判分明细 -->
+          <div class="results-detail-section">
+            <h4>逐题评分事实 (统一标准答案内核)</h4>
+            <div id="modalQuestionsFeedback" class="results-grid">
+              <!-- 逐题对错列表 -->
+            </div>
+          </div>
+
+          <!-- AI 证据化学习报告 -->
+          <div class="ai-report-section">
+            <div class="ai-report-badge">🤖 证据化 AI 学习诊断报告 (PRD 8.3)</div>
+            <div id="modalAiSummary" class="ai-summary-text">AI 正在生成诊断依据...</div>
+            <div id="modalAiEvidences" class="ai-evidences-list">
+              <!-- Fact vs Hypothesis -->
+            </div>
+            <div id="modalAiRecs" class="ai-recs-box">
+              <!-- 建议 -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="app.closeGradeModal()">返回文章精读</button>
+          <button class="btn btn-primary" onclick="app.navTo('review')">去复习标记的生词 →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

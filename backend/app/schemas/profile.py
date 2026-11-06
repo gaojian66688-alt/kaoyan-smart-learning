@@ -1,0 +1,22 @@
+from typing import Optional
+from pydantic import BaseModel
+
+class LearningProfileSchema(BaseModel):
+    user_id: str
+    total_time_seconds: int
+    total_questions_attempted: int
+    total_questions_correct: int
+    overall_accuracy: float
+    total_vocabulary_marked: int
+    total_reviews_completed: int
+    consecutive_study_days: int
+
+    class Config:
+        from_attributes = True
+
+class TodayPlanSchema(BaseModel):
+    due_reviews_count: int
+    unconsolidated_mistakes_count: int
+    recommended_reading_group_id: Optional[str] = None
+    recommended_reading_title: Optional[str] = None
+    consecutive_days: int

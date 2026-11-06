@@ -1,0 +1,301 @@
+import uuid
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models.vocabulary import WordDict, UserVocabulary, VocabularyOccurrence, ReviewLog
+from app.models.user import LearningProfile
+from app.schemas.vocabulary import (
+    WordLookupResponse, MarkWordRequest, UserVocabularySchema,
+    VocabularyOccurrenceSchema, ReviewFeedbackRequest, ReviewFeedbackResponse
+)
+from app.core.fsrs_scheduler import default_fsrs
+
+router = APIRouter(prefix="/vocabulary", tags=["Vocabulary"])
+
+@router.get("/lookup", response_model=WordLookupResponse)
+def lookup_word(
+    word: str = Query(..., description="English word to lookup"),
+    user_id: str = "default_user",
+    db: Session = Depends(get_db)
+):
+    clean_w = word.strip().lower()
+    entry = db.query(WordDict).filter(WordDict.word == clean_w).first()
+    
+    # 检查用户是否已添加过此词
+    saved = db.query(UserVocabulary).filter(
+        UserVocabulary.user_id == user_id,
+        UserVocabulary.word == clean_w
+    ).first()
+
+    if entry:
+        return WordLookupResponse(
+            word=entry.word,
+            phonetic=entry.phonetic,
+            meaning=entry.meaning,
+            is_saved=bool(saved)
+        )
+
+    # 简易词形还原或兜底提示
+    return WordLookupResponse(
+        word=clean_w,
+        phonetic=None,
+        meaning="真题高频核心词汇 (可通过上下文推测语义)",
+        is_saved=bool(saved)
+    )
+
+@router.post("/mark", response_model=UserVocabularySchema)
+def mark_new_word(data: MarkWordRequest, db: Session = Depends(get_db)):
+    """
+    PRD 9.2 & 9.4 (AT-06 & AT-07):
+    阅读中点击生词立即保存，不依赖试卷提交。
+    保存真题例句、来源出处。同一单词多次出现自动归并，累加语境，不造成词条泛滥。
+    """
+    clean_w = data.word.strip().lower()
+    if not clean_w:
+        raise HTTPException(status_code=400, detail="Word cannot be empty")
+
+    dict_entry = db.query(WordDict).filter(WordDict.word == clean_w).first()
+    phonetic = dict_entry.phonetic if dict_entry else None
+    default_def = data.definition or (dict_entry.meaning if dict_entry else "真题生词")
+
+    existing_vocab = db.query(UserVocabulary).filter(
+        UserVocabulary.user_id == data.user_id,
+        UserVocabulary.word == clean_w
+    ).first()
+
+    now = datetime.utcnow()
+
+    if existing_vocab:
+        # AT-07: 累加语境，词条去重归并
+        existing_vocab.occurrence_count += 1
+        occ = VocabularyOccurrence(
+            id=str(uuid.uuid4()),
+            user_vocab_id=existing_vocab.id,
+            context_sentence=data.context_sentence,
+            source_info=data.source_info,
+            group_id=data.group_id,
+            marked_at=now
+        )
+        db.add(occ)
+        target_vocab = existing_vocab
+    else:
+        # AT-06: 创建大学生词卡片并初始化 FSRS 状态
+        vocab_id = str(uuid.uuid4())
+        new_vocab = UserVocabulary(
+            id=vocab_id,
+            user_id=data.user_id,
+            word=clean_w,
+            phonetic=phonetic,
+            definition=default_def,
+            occurrence_count=1,
+            stability=0.0,
+            difficulty=0.0,
+            reps=0,
+            lapses=0,
+            state=0,  # New
+            due_date=now,  # 立即进入待复习队列
+            created_at=now
+        )
+        db.add(new_vocab)
+
+        occ = VocabularyOccurrence(
+            id=str(uuid.uuid4()),
+            user_vocab_id=vocab_id,
+            context_sentence=data.context_sentence,
+            source_info=data.source_info,
+            group_id=data.group_id,
+            marked_at=now
+        )
+        db.add(occ)
+        target_vocab = new_vocab
+
+        # 档案计数加 1
+        profile = db.query(LearningProfile).filter(LearningProfile.user_id == data.user_id).first()
+        today_str = datetime.utcnow().strftime("%Y-%m-%d")
+        if profile:
+            profile.total_vocabulary_marked += 1
+        else:
+            profile = LearningProfile(
+                id=str(uuid.uuid4()),
+                user_id=data.user_id,
+                total_time_seconds=0,
+                total_questions_attempted=0,
+                total_questions_correct=0,
+                overall_accuracy=0.0,
+                total_vocabulary_marked=1,
+                total_reviews_completed=0,
+                consecutive_study_days=1,
+                last_active_date=today_str
+            )
+            db.add(profile)
+
+    db.commit()
+    db.refresh(target_vocab)
+
+    # 组装返回
+    occs = [
+        VocabularyOccurrenceSchema(
+            context_sentence=o.context_sentence,
+            source_info=o.source_info,
+            marked_at=o.marked_at
+        )
+        for o in target_vocab.occurrences
+    ]
+
+    return UserVocabularySchema(
+        id=target_vocab.id,
+        word=target_vocab.word,
+        phonetic=target_vocab.phonetic,
+        definition=target_vocab.definition,
+        occurrence_count=target_vocab.occurrence_count,
+        stability=target_vocab.stability,
+        difficulty=target_vocab.difficulty,
+        reps=target_vocab.reps,
+        lapses=target_vocab.lapses,
+        state=target_vocab.state,
+        due_date=target_vocab.due_date,
+        last_review=target_vocab.last_review,
+        occurrences=occs
+    )
+
+@router.get("/list", response_model=list[UserVocabularySchema])
+def list_user_vocabulary(user_id: str = "default_user", db: Session = Depends(get_db)):
+    vocabs = db.query(UserVocabulary).filter(UserVocabulary.user_id == user_id).order_by(UserVocabulary.created_at.desc()).all()
+    results = []
+    for v in vocabs:
+        occs = [
+            VocabularyOccurrenceSchema(
+                context_sentence=o.context_sentence,
+                source_info=o.source_info,
+                marked_at=o.marked_at
+            )
+            for o in v.occurrences
+        ]
+        results.append(UserVocabularySchema(
+            id=v.id,
+            word=v.word,
+            phonetic=v.phonetic,
+            definition=v.definition,
+            occurrence_count=v.occurrence_count,
+            stability=v.stability,
+            difficulty=v.difficulty,
+            reps=v.reps,
+            lapses=v.lapses,
+            state=v.state,
+            due_date=v.due_date,
+            last_review=v.last_review,
+            occurrences=occs
+        ))
+    return results
+
+@router.get("/review-queue", response_model=list[UserVocabularySchema])
+def get_review_queue(user_id: str = "default_user", db: Session = Depends(get_db)):
+    """
+    获取今日到期需复习的 FSRS 卡片队列
+    """
+    now = datetime.utcnow()
+    vocabs = db.query(UserVocabulary).filter(
+        UserVocabulary.user_id == user_id,
+        UserVocabulary.due_date <= now
+    ).order_by(UserVocabulary.due_date.asc()).limit(50).all()
+
+    # 如果到期的少于 10 个，补充新词
+    if len(vocabs) < 10:
+        new_vocabs = db.query(UserVocabulary).filter(
+            UserVocabulary.user_id == user_id,
+            UserVocabulary.reps == 0,
+            UserVocabulary.id.notin_([v.id for v in vocabs])
+        ).limit(10 - len(vocabs)).all()
+        vocabs.extend(new_vocabs)
+
+    results = []
+    for v in vocabs:
+        occs = [
+            VocabularyOccurrenceSchema(
+                context_sentence=o.context_sentence,
+                source_info=o.source_info,
+                marked_at=o.marked_at
+            )
+            for o in v.occurrences
+        ]
+        results.append(UserVocabularySchema(
+            id=v.id,
+            word=v.word,
+            phonetic=v.phonetic,
+            definition=v.definition,
+            occurrence_count=v.occurrence_count,
+            stability=v.stability,
+            difficulty=v.difficulty,
+            reps=v.reps,
+            lapses=v.lapses,
+            state=v.state,
+            due_date=v.due_date,
+            last_review=v.last_review,
+            occurrences=occs
+        ))
+    return results
+
+@router.post("/feedback", response_model=ReviewFeedbackResponse)
+def review_feedback(data: ReviewFeedbackRequest, db: Session = Depends(get_db)):
+    """
+    PRD 9.3 & AT-08:
+    基于 FSRS 四档反馈 (1=忘记, 2=困难, 3=记得, 4=轻松) 计算下一次复习时间。
+    生成不可篡改的 ReviewLog 记录。
+    """
+    vocab = db.query(UserVocabulary).filter(UserVocabulary.id == data.vocab_id).first()
+    if not vocab:
+        raise HTTPException(status_code=404, detail="Vocabulary item not found")
+
+    if data.rating not in [1, 2, 3, 4]:
+        raise HTTPException(status_code=400, detail="Rating must be 1, 2, 3, or 4")
+
+    now = datetime.utcnow()
+    res = default_fsrs.review(
+        rating=data.rating,
+        last_stability=vocab.stability or 0.0,
+        last_difficulty=vocab.difficulty or 0.0,
+        last_review_date=vocab.last_review,
+        now=now
+    )
+
+    # 记录复习日志
+    log_entry = ReviewLog(
+        id=str(uuid.uuid4()),
+        user_vocab_id=vocab.id,
+        rating=data.rating,
+        stability_before=vocab.stability or 0.0,
+        stability_after=res["stability"],
+        difficulty_before=vocab.difficulty or 0.0,
+        difficulty_after=res["difficulty"],
+        interval_days=res["interval_days"],
+        reviewed_at=now
+    )
+    db.add(log_entry)
+
+    # 更新词卡状态
+    vocab.stability = res["stability"]
+    vocab.difficulty = res["difficulty"]
+    vocab.state = res["state"]
+    vocab.due_date = res["due_date"]
+    vocab.last_review = now
+    vocab.reps += 1
+    if data.rating == 1:
+        vocab.lapses += 1
+
+    # 更新个人学习档案 Profile
+    profile = db.query(LearningProfile).filter(LearningProfile.user_id == data.user_id).first()
+    if profile:
+        profile.total_reviews_completed += 1
+
+    db.commit()
+
+    return ReviewFeedbackResponse(
+        vocab_id=vocab.id,
+        rating=data.rating,
+        new_stability=res["stability"],
+        new_difficulty=res["difficulty"],
+        interval_days=res["interval_days"],
+        next_due_date=res["due_date"],
+        new_state=res["state"]
+    )
