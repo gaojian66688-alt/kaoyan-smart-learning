@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+export PYTHONPATH="$SCRIPT_DIR/backend:${PYTHONPATH:-}"
+
 echo "========================================================================="
 echo "考研英语智能学习系统 (Kaoyan Smart Learning) —— 快速启动脚本"
 echo "========================================================================="
