@@ -547,6 +547,228 @@ body {
   color: var(--primary-hover);
 }
 
+/* 批改后选项高亮与指示徽标 (PRD 8.1 & 8.4) */
+.option-item.correct-opt {
+  border-color: #10b981 !important;
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  font-weight: 600 !important;
+}
+
+.option-item.wrong-opt {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+  font-weight: 600 !important;
+}
+
+.option-item.target-opt {
+  border: 2px dashed #10b981 !important;
+  background-color: #f0fdf4 !important;
+  color: #065f46 !important;
+  font-weight: 600 !important;
+}
+
+.opt-tag-badge {
+  margin-left: auto;
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.opt-tag-badge.badge-success {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.opt-tag-badge.badge-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.opt-tag-badge.badge-target {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+/* 批改后逐题解析卡片容器与展开折叠机制 */
+.q-graded-box {
+  margin-top: 14px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--gray-200);
+  background: #ffffff;
+}
+
+.q-grade-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 12px;
+}
+
+.q-grade-header.wrong {
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.q-grade-header.correct {
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.q-grade-header.subjective {
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.q-grade-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.status-badge.badge-wrong {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.status-badge.badge-correct {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
+
+.status-badge.badge-subjective {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fcd34d;
+}
+
+.btn-toggle-exp {
+  padding: 5px 13px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-toggle-exp.btn-toggle-wrong {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.btn-toggle-exp.btn-toggle-wrong:hover {
+  background: #dc2626;
+}
+
+.btn-toggle-exp.btn-toggle-correct {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.btn-toggle-exp.btn-toggle-correct:hover {
+  background: #059669;
+}
+
+.btn-toggle-exp.btn-toggle-subjective {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.btn-toggle-exp.btn-toggle-subjective:hover {
+  background: #d97706;
+}
+
+/* 解析内容区域 */
+.q-exp-content {
+  padding: 14px 16px;
+  background: #ffffff;
+  transition: all 0.25s ease-in-out;
+}
+
+.q-exp-content.collapsed {
+  display: none !important;
+}
+
+.q-exp-content.expanded {
+  display: block;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+.exp-section {
+  margin-bottom: 12px;
+}
+
+.exp-section:last-child {
+  margin-bottom: 0;
+}
+
+.exp-section-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gray-700);
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.exp-section-body {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--gray-800);
+}
+
+.exp-section-body.evidence-quote {
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+  padding: 8px 12px;
+  border-radius: 4px;
+  color: #1e40af;
+}
+
+.model-writing-box {
+  background: #fefce8;
+  border-left: 3px solid #f59e0b;
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: #78350f;
+  line-height: 1.7;
+}
+
+@keyframes cardPulse {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+.q-card-pulse {
+  animation: cardPulse 1.5s ease-out;
+  border-color: var(--primary) !important;
+}
+
 .option-key {
   font-weight: 700;
   margin-right: 8px;
@@ -1233,6 +1455,13 @@ body {
   border-radius: var(--radius-sm);
   text-align: center;
   border: 1px solid var(--gray-200);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.result-tag-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .result-tag-box.correct {

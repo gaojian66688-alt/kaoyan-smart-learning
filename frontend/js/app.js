@@ -22,12 +22,14 @@ class KaoyanApp {
     this.reviewQueue = [];
     this.currentReviewIndex = 0;
     this.isCardFlipped = false;
+
+    // 批改结果字典 (question_id -> GradeResultSchema)，用于逐题渲染解析与展开控制
+    this.gradedResultsMap = new Map();
   }
 
   async init() {
     this.setupEventListeners();
     await this.loadExams();
-    await this.loadGroupData(this.currentGroupId);
     await this.updateDashboard();
   }
 
@@ -36,6 +38,7 @@ class KaoyanApp {
     if (examSelect) {
       examSelect.addEventListener("change", async (e) => {
         this.currentExamId = e.target.value;
+        this.gradedResultsMap.clear();
         await this.loadExamOutline(this.currentExamId);
       });
     }
@@ -96,6 +99,7 @@ class KaoyanApp {
 
   switchPracticeMode(mode) {
     this.currentMode = mode;
+    this.gradedResultsMap.clear();
     document.querySelectorAll(".pill-btn").forEach(btn => {
       if (btn.getAttribute("data-mode") === mode) btn.classList.add("active");
       else btn.classList.remove("active");
@@ -270,11 +274,11 @@ class KaoyanApp {
       document.getElementById("passageSource").innerText = data.source_info || "考研英语官方真题";
       document.getElementById("questionsPanelTitle").innerText = `${data.title} 题目 (共 ${data.questions.length} 题)`;
 
-      this.renderPassage(data.passage_text);
-      this.renderQuestions(data.questions);
-
       // 创建或恢复作答会话
       await this.initPracticeAttempt(groupId);
+
+      this.renderPassage(data.passage_text);
+      this.renderQuestions(data.questions);
     } catch (e) {
       console.error("Failed to load group:", e);
     }
@@ -358,6 +362,7 @@ class KaoyanApp {
     });
 
     container.innerHTML = html;
+    this.applyGradingToCards();
   }
 
   onSubjectiveInput(questionId, event) {
@@ -387,7 +392,7 @@ class KaoyanApp {
       if (res.ok) {
         const att = await res.json();
         this.currentAttemptId = att.id;
-        this.userAnswers = att.saved_responses || {};
+        this.userAnswers = { ...(att.saved_responses || {}), ...this.userAnswers };
 
         // 恢复选中状态
         for (const [qid, ans] of Object.entries(this.userAnswers)) {
@@ -400,6 +405,9 @@ class KaoyanApp {
   }
 
   selectOption(questionId, key) {
+    if (this.gradedResultsMap && this.gradedResultsMap.has(questionId)) {
+      return; // 批改后答案锁定
+    }
     this.userAnswers[questionId] = key;
     this.applyOptionVisual(questionId, key);
     this.triggerAutoSave();
@@ -587,6 +595,13 @@ class KaoyanApp {
     const proceed = confirm(`本次提交将锁定 ${scopeName} 作答并由统一内核评分。确认提交吗？`);
     if (!proceed) return;
 
+    // 提交前强制刷盘已选答案，防止防抖延迟导致最后一道作答未落库
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+    }
+    await this.saveResponses();
+
     try {
       const res = await fetch("/api/practice/submit", {
         method: "POST",
@@ -612,6 +627,18 @@ class KaoyanApp {
   }
 
   async showGradeResults(subData) {
+    if (!this.gradedResultsMap) {
+      this.gradedResultsMap = new Map();
+    }
+    if (subData.results && Array.isArray(subData.results)) {
+      subData.results.forEach(r => {
+        this.gradedResultsMap.set(r.question_id, r);
+      });
+    }
+
+    // 立即向题目卡片渲染批改反馈与解析（错题自动展开，正确题提供展开按钮）
+    this.applyGradingToCards();
+
     document.getElementById("modalScore").innerText = `${subData.total_score} / ${subData.max_score} 分`;
     document.getElementById("modalObjScore").innerText = `${subData.objective_score || 0.0} 分`;
     document.getElementById("modalSubjScore").innerText = `${subData.subjective_score || 0.0} 分 (估)`;
@@ -619,9 +646,10 @@ class KaoyanApp {
 
     const grid = document.getElementById("modalQuestionsFeedback");
     grid.innerHTML = subData.results.map(r => `
-      <div class="result-tag-box ${r.is_correct ? 'correct' : 'wrong'}">
+      <div class="result-tag-box ${r.is_correct ? 'correct' : 'wrong'}" onclick="app.jumpToQuestion('${r.question_id}')" title="点击定位至该题及详细解析">
         <span class="q-title">#${r.question_num} ${r.is_correct ? '✓ 达标' : '✗ 失分'}</span>
-        <span class="ans-info">${r.is_estimated ? r.score_band : `得分: ${r.score}/${r.max_score}分`}</span>
+        <span class="ans-info">${r.is_estimated ? (r.score_band || '已估分') : `得分: ${r.score}/${r.max_score}分`}</span>
+        <span style="font-size:11px;color:#64748b;display:block;margin-top:4px;">${r.is_correct ? '查看解析 🔍' : '查看错因 🔍'}</span>
       </div>
     `).join("");
 
@@ -648,6 +676,203 @@ class KaoyanApp {
       }
     } catch (e) {
       console.error("AI report error:", e);
+    }
+  }
+
+  // PRD 8.1 & 8.4: 题目批改后状态与解析渲染
+  // 核心规则：错误的要有解析（默认展开），正确的可以让用户自己点开查看（默认折叠提供按钮）
+  // 答案、解析与题目一一对应，题目完全干净，无水印或无关串入
+  applyGradingToCards() {
+    if (!this.gradedResultsMap || this.gradedResultsMap.size === 0) return;
+
+    for (const [qid, r] of this.gradedResultsMap.entries()) {
+      const card = document.getElementById(`q-card-${qid}`);
+      if (!card) continue;
+
+      // 移除原有的批改反馈容器以防重复
+      const oldBox = card.querySelector(".q-graded-box");
+      if (oldBox) oldBox.remove();
+
+      // 更新选项样式及指示标注
+      const options = card.querySelectorAll(".option-item");
+      options.forEach(opt => {
+        opt.classList.remove("selected", "correct-opt", "wrong-opt", "target-opt");
+        const existingBadge = opt.querySelector(".opt-tag-badge");
+        if (existingBadge) existingBadge.remove();
+
+        const optKey = opt.getAttribute("data-key");
+        if (r.is_correct) {
+          if (optKey === r.user_answer) {
+            opt.classList.add("correct-opt");
+            const badge = document.createElement("span");
+            badge.className = "opt-tag-badge badge-success";
+            badge.innerText = "✓ 您的正确作答";
+            opt.appendChild(badge);
+          }
+        } else {
+          if (optKey === r.user_answer) {
+            opt.classList.add("wrong-opt");
+            const badge = document.createElement("span");
+            badge.className = "opt-tag-badge badge-danger";
+            badge.innerText = "✗ 您的选择";
+            opt.appendChild(badge);
+          }
+          if (optKey === r.correct_answer) {
+            opt.classList.add("target-opt");
+            const badge = document.createElement("span");
+            badge.className = "opt-tag-badge badge-target";
+            badge.innerText = "★ 标准答案";
+            opt.appendChild(badge);
+          }
+        }
+      });
+
+      // 主观题文本域只读
+      const textarea = card.querySelector(".subjective-textarea");
+      if (textarea) {
+        textarea.readOnly = true;
+        textarea.style.backgroundColor = "#f8fafc";
+      }
+
+      // 构建逐题解析容器 (错误自动展开，正确默认折叠并提供展开按钮)
+      const isSubjective = Boolean(r.is_estimated);
+      let headerHtml = "";
+      let contentHtml = "";
+
+      if (isSubjective) {
+        headerHtml = `
+          <div class="q-grade-header subjective">
+            <div class="header-left">
+              <span class="status-badge badge-subjective">📝 AI 辅助估分</span>
+              <span class="ans-summary">等第：<strong>${r.score_band || '已评分'}</strong> | 估分：<strong>${r.score} / ${r.max_score}</strong> 分 (估)</span>
+            </div>
+            <button class="btn-toggle-exp btn-toggle-subjective" onclick="app.toggleQuestionExp('${qid}')" id="btn-toggle-${qid}">${r.is_correct ? '查看解析与范文 ▼' : '收起解析与范文 ▲'}</button>
+          </div>
+        `;
+        contentHtml = `
+          <div class="q-exp-content ${r.is_correct ? 'collapsed' : 'expanded'}" id="exp-card-${qid}">
+            <div class="exp-section">
+              <div class="exp-section-title">🎯 评分诊断与反馈</div>
+              <div class="exp-section-body">${(r.explanation || '').replace(/\n/g, '<br/>')}</div>
+            </div>
+            ${r.correct_answer ? `
+              <div class="exp-section">
+                <div class="exp-section-title">📑 官方标准译文 / 经典参考范文</div>
+                <div class="exp-section-body model-writing-box">${r.correct_answer.replace(/\n/g, '<br/>')}</div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      } else if (!r.is_correct) {
+        // 错误题目：自动展开解析
+        headerHtml = `
+          <div class="q-grade-header wrong">
+            <div class="header-left">
+              <span class="status-badge badge-wrong">❌ 回答错误</span>
+              <span class="ans-summary">您的作答：<strong>${r.user_answer || '未作答'}</strong> | 标准答案：<strong class="text-success">${r.correct_answer}</strong> | 得分：<strong>0 / ${r.max_score}</strong> 分</span>
+            </div>
+            <button class="btn-toggle-exp btn-toggle-wrong" onclick="app.toggleQuestionExp('${qid}')" id="btn-toggle-${qid}">收起解析 ▲</button>
+          </div>
+        `;
+        contentHtml = `
+          <div class="q-exp-content expanded" id="exp-card-${qid}">
+            ${r.evidence_sentence ? `
+              <div class="exp-section">
+                <div class="exp-section-title">📌 真题定位依据</div>
+                <div class="exp-section-body evidence-quote">${this.tokenizeWords(r.evidence_sentence)}</div>
+              </div>
+            ` : ''}
+            <div class="exp-section">
+              <div class="exp-section-title">💡 权威解析</div>
+              <div class="exp-section-body">${(r.explanation || '暂无详细解析').replace(/\n/g, '<br/>')}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        // 正确题目：默认折叠，提供按钮由用户点开查看
+        headerHtml = `
+          <div class="q-grade-header correct">
+            <div class="header-left">
+              <span class="status-badge badge-correct">✅ 回答正确</span>
+              <span class="ans-summary">您的作答：<strong>${r.user_answer}</strong> | 标准答案：<strong class="text-success">${r.correct_answer}</strong> | 得分：<strong>${r.score} / ${r.max_score}</strong> 分</span>
+            </div>
+            <button class="btn-toggle-exp btn-toggle-correct" onclick="app.toggleQuestionExp('${qid}')" id="btn-toggle-${qid}">查看解析 ▼</button>
+          </div>
+        `;
+        contentHtml = `
+          <div class="q-exp-content collapsed" id="exp-card-${qid}">
+            ${r.evidence_sentence ? `
+              <div class="exp-section">
+                <div class="exp-section-title">📌 真题定位依据</div>
+                <div class="exp-section-body evidence-quote">${this.tokenizeWords(r.evidence_sentence)}</div>
+              </div>
+            ` : ''}
+            <div class="exp-section">
+              <div class="exp-section-title">💡 权威解析</div>
+              <div class="exp-section-body">${(r.explanation || '暂无详细解析').replace(/\n/g, '<br/>')}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      const gradedBox = document.createElement("div");
+      gradedBox.className = "q-graded-box";
+      gradedBox.innerHTML = headerHtml + contentHtml;
+      card.appendChild(gradedBox);
+    }
+  }
+
+  toggleQuestionExp(questionId) {
+    const card = document.getElementById(`exp-card-${questionId}`);
+    const btn = document.getElementById(`btn-toggle-${questionId}`);
+    if (!card || !btn) return;
+
+    const isCollapsed = card.classList.contains("collapsed");
+    if (isCollapsed) {
+      card.classList.remove("collapsed");
+      card.classList.add("expanded");
+      if (btn.classList.contains("btn-toggle-correct")) {
+        btn.innerText = "收起解析 ▲";
+      } else if (btn.classList.contains("btn-toggle-subjective")) {
+        btn.innerText = "收起解析与范文 ▲";
+      } else {
+        btn.innerText = "收起解析 ▲";
+      }
+    } else {
+      card.classList.remove("expanded");
+      card.classList.add("collapsed");
+      if (btn.classList.contains("btn-toggle-correct")) {
+        btn.innerText = "查看解析 ▼";
+      } else if (btn.classList.contains("btn-toggle-subjective")) {
+        btn.innerText = "查看解析与范文 ▼";
+      } else {
+        btn.innerText = "查看解析 ▼";
+      }
+    }
+  }
+
+  async jumpToQuestion(questionId) {
+    this.closeGradeModal();
+    let targetCard = document.getElementById(`q-card-${questionId}`);
+    if (!targetCard && this.allExamData) {
+      const currentExam = this.allExamData.find(e => e.id === this.currentExamId);
+      if (currentExam && currentExam.sections) {
+        for (const sec of currentExam.sections) {
+          for (const grp of sec.question_groups) {
+            if (grp.id.includes(questionId) || (grp.questions && grp.questions.some(q => q.id === questionId))) {
+              await this.selectQuestionGroup(grp.id);
+              targetCard = document.getElementById(`q-card-${questionId}`);
+              break;
+            }
+          }
+          if (targetCard) break;
+        }
+      }
+    }
+    if (targetCard) {
+      targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      targetCard.classList.add("q-card-pulse");
+      setTimeout(() => targetCard.classList.remove("q-card-pulse"), 2000);
     }
   }
 
