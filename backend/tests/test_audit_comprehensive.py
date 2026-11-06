@@ -262,5 +262,65 @@ class TestAuditComprehensive(unittest.TestCase):
         self.assertEqual(saved_uv.occurrences[0].group_id, group_id)
         self.assertEqual(saved_uv.occurrences[0].context_sentence, context_sentence)
 
+    def test_audit_phrase_vocabulary_and_marker_system(self):
+        """审计项 8: 短语与固定搭配查词、入库、马克笔标记与取消标记适配"""
+        from fastapi.testclient import TestClient
+        from app.main import app
+        client = TestClient(app)
+        test_user = "phrase_audit_user"
+
+        # 1. 考研核心短语搭配查询 (如 rely on)
+        res_lookup = client.get("/api/vocabulary/lookup", params={"word": "rely on", "user_id": test_user})
+        self.assertEqual(res_lookup.status_code, 200)
+        data_lookup = res_lookup.json()
+        self.assertEqual(data_lookup["word"], "rely on")
+        self.assertIn("短语", data_lookup["phonetic"])
+        self.assertTrue("依靠" in data_lookup["meaning"] or "依赖" in data_lookup["meaning"])
+        self.assertFalse(data_lookup["is_saved"])
+
+        # 2. 标记短语至生词本并纳入 FSRS
+        phrase_sent = "Researchers increasingly rely on empirical datasets to validate theoretical assertions."
+        res_mark = client.post("/api/vocabulary/mark", json={
+            "word": "rely on",
+            "context_sentence": phrase_sent,
+            "source_info": "2024 考研英语（一）Text 1",
+            "group_id": "2024-english-1-reading-text-1",
+            "user_id": test_user
+        })
+        self.assertEqual(res_mark.status_code, 200)
+        data_mark = res_mark.json()
+        self.assertEqual(data_mark["word"], "rely on")
+        self.assertEqual(data_mark["occurrence_count"], 1)
+
+        # 3. 再次查询短语验证已标记状态
+        res_lookup_saved = client.get("/api/vocabulary/lookup", params={"word": "rely on", "user_id": test_user})
+        self.assertTrue(res_lookup_saved.json()["is_saved"])
+
+        # 4. 选项内划词短语入库 (如 foster structured)
+        res_opt_mark = client.post("/api/vocabulary/mark", json={
+            "word": "foster structured",
+            "context_sentence": "[#21 选项 A] foster structured institutional support",
+            "source_info": "2024 考研英语（一）Text 1 (选项 A)",
+            "group_id": "2024-english-1-reading-text-1",
+            "user_id": test_user
+        })
+        self.assertEqual(res_opt_mark.status_code, 200)
+
+        # 5. 用户生词本列表同时包含单词与短语
+        res_list = client.get("/api/vocabulary/list", params={"user_id": test_user})
+        self.assertEqual(res_list.status_code, 200)
+        vocab_words = [v["word"] for v in res_list.json()]
+        self.assertIn("rely on", vocab_words)
+        self.assertIn("foster structured", vocab_words)
+
+        # 6. 取消短语标记 (Unmark)
+        res_unmark = client.delete("/api/vocabulary/unmark", params={"word": "rely on", "user_id": test_user})
+        self.assertEqual(res_unmark.status_code, 200)
+        self.assertEqual(res_unmark.json()["status"], "unmarked")
+
+        # 验证已取消标记
+        res_lookup_after = client.get("/api/vocabulary/lookup", params={"word": "rely on", "user_id": test_user})
+        self.assertFalse(res_lookup_after.json()["is_saved"])
+
 if __name__ == "__main__":
     unittest.main()

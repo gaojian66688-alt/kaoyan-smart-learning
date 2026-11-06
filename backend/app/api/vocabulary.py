@@ -13,19 +13,20 @@ from app.schemas.vocabulary import (
     VocabularyOccurrenceSchema, ReviewFeedbackRequest, ReviewFeedbackResponse
 )
 from app.core.fsrs_scheduler import default_fsrs
+from app.core.phrase_dict import lookup_phrase_meaning
 
 router = APIRouter(prefix="/vocabulary", tags=["Vocabulary"])
 
 @router.get("/lookup", response_model=WordLookupResponse)
 def lookup_word(
-    word: str = Query(..., description="English word to lookup"),
+    word: str = Query(..., description="English word or phrase to lookup"),
     user_id: str = "default_user",
     db: Session = Depends(get_db)
 ):
-    clean_w = word.strip().lower()
+    clean_w = " ".join(word.strip().lower().split())
     entry = db.query(WordDict).filter(WordDict.word == clean_w).first()
     
-    # 检查用户是否已添加过此词
+    # 检查用户是否已添加过此词或短语
     saved = db.query(UserVocabulary).filter(
         UserVocabulary.user_id == user_id,
         UserVocabulary.word == clean_w
@@ -39,11 +40,22 @@ def lookup_word(
             is_saved=bool(saved)
         )
 
-    # 简易词形还原或兜底提示
+    # 考研核心短语与固定搭配检测
+    phrase_meaning = lookup_phrase_meaning(clean_w)
+    if phrase_meaning:
+        return WordLookupResponse(
+            word=clean_w,
+            phonetic="[短语搭配]",
+            meaning=phrase_meaning,
+            is_saved=bool(saved)
+        )
+
+    # 短语兜底提示或单生词兜底
+    is_phrase = " " in clean_w or "-" in clean_w
     return WordLookupResponse(
         word=clean_w,
-        phonetic=None,
-        meaning="真题高频核心词汇 (可通过上下文推测语义)",
+        phonetic="[核心短语]" if is_phrase else None,
+        meaning="考研真题核心重点短语搭配 (可通过真题语境推导语义，支持自定释义)" if is_phrase else "真题高频核心词汇 (可通过上下文推测语义)",
         is_saved=bool(saved)
     )
 
@@ -51,16 +63,18 @@ def lookup_word(
 def mark_new_word(data: MarkWordRequest, db: Session = Depends(get_db)):
     """
     PRD 9.2 & 9.4 (AT-06 & AT-07):
-    阅读中点击生词立即保存，不依赖试卷提交。
-    保存真题例句、来源出处。同一单词多次出现自动归并，累加语境，不造成词条泛滥。
+    阅读与选项中点击单词或划词短语立即保存，不依赖试卷提交。
+    保存真题例句、来源出处。同一单词/短语多次出现自动归并，累加语境，不造成词条泛滥。
     """
-    clean_w = data.word.strip().lower()
+    clean_w = " ".join(data.word.strip().lower().split())
     if not clean_w:
-        raise HTTPException(status_code=400, detail="Word cannot be empty")
+        raise HTTPException(status_code=400, detail="Word or phrase cannot be empty")
 
     dict_entry = db.query(WordDict).filter(WordDict.word == clean_w).first()
-    phonetic = dict_entry.phonetic if dict_entry else None
-    default_def = data.definition or (dict_entry.meaning if dict_entry else "真题生词")
+    phrase_meaning = lookup_phrase_meaning(clean_w) if not dict_entry else None
+    
+    phonetic = dict_entry.phonetic if dict_entry else ("[短语搭配]" if (" " in clean_w or phrase_meaning) else None)
+    default_def = data.definition or (dict_entry.meaning if dict_entry else (phrase_meaning or ("真题短语" if " " in clean_w else "真题生词")))
 
     existing_vocab = db.query(UserVocabulary).filter(
         UserVocabulary.user_id == data.user_id,
@@ -83,7 +97,7 @@ def mark_new_word(data: MarkWordRequest, db: Session = Depends(get_db)):
         db.add(occ)
         target_vocab = existing_vocab
     else:
-        # AT-06: 创建大学生词卡片并初始化 FSRS 状态
+        # AT-06: 创建生词/短语卡片并初始化 FSRS 状态
         vocab_id = str(uuid.uuid4())
         new_vocab = UserVocabulary(
             id=vocab_id,
@@ -162,6 +176,30 @@ def mark_new_word(data: MarkWordRequest, db: Session = Depends(get_db)):
         last_review=target_vocab.last_review,
         occurrences=occs
     )
+
+@router.delete("/unmark")
+def unmark_word(
+    word: str = Query(..., description="Word or phrase to unmark"),
+    user_id: str = "default_user",
+    db: Session = Depends(get_db)
+):
+    """
+    取消生词或短语的标记，移除其 FSRS 记录并撤销马克笔高亮
+    """
+    clean_w = " ".join(word.strip().lower().split())
+    vocab = db.query(UserVocabulary).filter(
+        UserVocabulary.user_id == user_id,
+        UserVocabulary.word == clean_w
+    ).first()
+    if not vocab:
+        return {"status": "not_found", "word": clean_w}
+
+    db.delete(vocab)
+    profile = db.query(LearningProfile).filter(LearningProfile.user_id == user_id).first()
+    if profile and profile.total_vocabulary_marked > 0:
+        profile.total_vocabulary_marked -= 1
+    db.commit()
+    return {"status": "unmarked", "word": clean_w}
 
 @router.get("/list", response_model=list[UserVocabularySchema])
 def list_user_vocabulary(user_id: str = "default_user", db: Session = Depends(get_db)):

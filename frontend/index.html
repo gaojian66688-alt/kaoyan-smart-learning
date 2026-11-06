@@ -144,7 +144,7 @@
           <div class="passage-pane">
             <div class="passage-header">
               <span class="passage-source" id="passageSource">来源加载中...</span>
-              <span class="passage-tip" id="passageTip">💡 提示：文章、题干与答案选项中的任意英文单词均可即时点击查词并加入生词本</span>
+              <span class="passage-tip" id="passageTip">💡 提示：文章、题干与答案选项中的英文单词与短语均支持点击或划词查义，点击即可使用马克笔标记加入生词本</span>
             </div>
             <article class="passage-article" id="passageContent">
               <!-- 文章段落与可点击单词动态渲染 -->
@@ -358,23 +358,34 @@
       </button>
     </nav>
 
-    <!-- 生词轻量弹窗 (点击单词即查) -->
+    <!-- 浮动划词/短语操作胶囊 (在文章、选项处划词即出) -->
+    <div id="phraseSelectionTooltip" class="phrase-selection-tooltip hidden" onmousedown="app.onSelectionTooltipClick(event)">
+      <span class="tooltip-icon">🖍️</span>
+      <span class="tooltip-text">查短语 / 标记</span>
+    </div>
+
+    <!-- 生词与短语轻量弹窗 (点击单词/短语或划词查义) -->
     <div id="wordPopover" class="word-popover hidden">
       <div class="popover-header">
         <h4 id="popoverWord">word</h4>
         <span id="popoverPhonetic" class="popover-phonetic">/ - /</span>
+        <span id="popoverTypeTag" class="popover-type-tag">单词</span>
         <button class="popover-close" onclick="app.closeWordPopover()">×</button>
       </div>
       <div class="popover-body">
         <p id="popoverMeaning" class="popover-meaning">释义加载中...</p>
+        <div id="popoverPhraseSuggestions" class="phrase-sug-row" style="display:none;"></div>
         <div class="popover-sentence-preview">
-          <span class="tag">当前语境</span>
+          <span class="tag">真题语境出处</span>
           <span id="popoverSentence">...</span>
         </div>
       </div>
       <div class="popover-footer">
+        <button id="btnUnmarkWord" class="btn btn-outline-danger" style="display:none;" onclick="app.unmarkCurrentWord()">
+          🗑️ 取消标记
+        </button>
         <button id="btnSaveWord" class="btn btn-sm btn-primary" onclick="app.saveCurrentWord()">
-          + 加入生词本 (纳入 FSRS)
+          🖍️ 马克笔标记 · 纳入 FSRS
         </button>
       </div>
     </div>

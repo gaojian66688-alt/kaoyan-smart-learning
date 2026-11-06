@@ -5,26 +5,26 @@ from app.database import Base, utc_now
 
 class WordDict(Base):
     """
-    词汇基础字典（内置 6590 考研高频大纲词汇）
+    词汇基础字典（内置 6590 考研高频大纲词汇与核心短语）
     """
     __tablename__ = "word_dicts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    word = Column(String(64), unique=True, nullable=False, index=True)
+    word = Column(String(128), unique=True, nullable=False, index=True)
     phonetic = Column(String(64), nullable=True)
     meaning = Column(Text, nullable=False)
 
 
 class UserVocabulary(Base):
     """
-    PRD 9.2: 用户生词卡片与 FSRS 记忆状态
+    PRD 9.2: 用户生词卡片与 FSRS 记忆状态（支持单词及多词核心短语搭配）
     """
     __tablename__ = "user_vocabularies"
 
     id = Column(String(64), primary_key=True)
     user_id = Column(String(64), default="default_user", index=True)
-    word = Column(String(64), nullable=False, index=True)
-    lemma = Column(String(64), nullable=True)
+    word = Column(String(128), nullable=False, index=True)
+    lemma = Column(String(128), nullable=True)
     phonetic = Column(String(64), nullable=True)
     definition = Column(Text, nullable=False)  # 当前真题语境义项
     occurrence_count = Column(Integer, default=1)  # 跨真题曝光/标记次数

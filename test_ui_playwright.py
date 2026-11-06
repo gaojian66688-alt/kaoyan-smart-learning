@@ -66,25 +66,73 @@ def run_ui_test():
             time.sleep(0.5)
             print("6. Special training inference filter verified (AT-03).")
 
-            # 7b. 验证【答案选项里的单词点击查词与加入生词本】
-            opt_word = page.locator(".option-item .word-token").first
+            # 7b. 验证【文章与选项中单词、短语查词，马克笔高亮标记与点击适配】
+            # 7b-1: 点击选项中的单词查词，并验证不会误触选项单选状态
+            opt_item = page.locator("#q-card-2024-english-1-text1-q21 .option-item[data-key='A']").first
+            opt_word = opt_item.locator(".word-token").first
             if opt_word.count() > 0:
                 opt_word_text = opt_word.inner_text()
                 opt_word.click()
                 time.sleep(0.5)
+                # 验证选项并没有被勾选（点击单词优先查词，做好点击适配）
+                assert not opt_item.get_attribute("class") or "selected" not in opt_item.get_attribute("class"), "Clicking word inside option should not select option"
+                
                 # 验证弹窗成功弹出并显示该选项词
                 pop_word = page.locator("#popoverWord").inner_text()
                 assert pop_word.lower() == opt_word_text.lower(), f"Expected {opt_word_text}, got {pop_word}"
                 pop_sent = page.locator("#popoverSentence").inner_text()
                 assert "选项" in pop_sent, f"Expected option context in sentence, got: {pop_sent}"
-                # 点击加入生词本 (若未加入则点击加入)
+                
+                # 点击马克笔标记加入生词本
                 btn = page.locator("#btnSaveWord")
                 if btn.is_enabled():
                     btn.click()
-                    time.sleep(0.5)
-                print(f"6b. Option word lookup and FSRS saving verified for: {opt_word_text} ({pop_sent[:35]}...)")
+                    time.sleep(0.6)
+                
+                # 验证已施加马克笔高亮样式 (marker-highlight)
+                assert "marker-highlight" in opt_word.get_attribute("class"), "Saved word must have marker-highlight class"
+                print(f"6b-1. Option word marker pen highlight verified for: {opt_word_text}")
                 page.click(".popover-close")
-                time.sleep(0.5)
+                time.sleep(0.3)
+
+            # 7b-2: 验证文章与选项中【短语查词、马克笔高亮与取消标记】
+            # 在文章中标记真实真题短语 "remote communication"
+            page.evaluate("app.openLookupForText('remote communication', document.querySelector('.passage-paragraph'))")
+            time.sleep(0.5)
+            assert "remote communication" in page.locator("#popoverWord").inner_text().lower()
+            assert "短语" in page.locator("#popoverTypeTag").inner_text()
+            btn_save = page.locator("#btnSaveWord")
+            if btn_save.is_enabled():
+                btn_save.click()
+                time.sleep(0.6)
+            
+            # 验证文章中短语已被马克笔高亮 (phrase-marker marker-highlight)
+            phrase_marker_art = page.locator(".passage-article .phrase-marker.marker-highlight:has-text('remote communication')")
+            assert phrase_marker_art.count() > 0, "Passage phrase must be highlighted with phrase-marker and marker-highlight"
+            print("6b-2. Article phrase 'remote communication' marker pen highlight verified.")
+            page.click(".popover-close")
+            time.sleep(1.2)
+
+            # 在选项中标记真实真题短语 "foster structured"
+            page.evaluate("app.openLookupForText('foster structured', document.querySelector('.option-item'))")
+            time.sleep(0.5)
+            assert "foster structured" in page.locator("#popoverWord").inner_text().lower()
+            btn_save_opt = page.locator("#btnSaveWord")
+            if btn_save_opt.is_enabled():
+                btn_save_opt.click()
+                time.sleep(1.2)
+            phrase_marker_opt = page.locator(".option-item .phrase-marker.marker-highlight:has-text('foster structured')").first
+            assert phrase_marker_opt.count() > 0, "Option phrase must be highlighted with phrase-marker and marker-highlight"
+            print("6b-3. Option phrase 'foster structured' marker pen highlight verified.")
+
+            # 点击已标记的短语并测试取消标记 (Unmark)
+            phrase_marker_opt.click()
+            time.sleep(0.5)
+            unmark_btn = page.locator("#btnUnmarkWord")
+            assert unmark_btn.is_visible(), "Unmark button should be visible for already marked phrase"
+            unmark_btn.click()
+            time.sleep(0.5)
+            print("6b-4. Phrase unmark and marker removal verified.")
 
             # 7c. 自动化测试批改后解析交互：错题自动展开、正确题折叠并提供展开按钮 (Prompt #9 核心要求)
             page.on("dialog", lambda dialog: dialog.accept())
