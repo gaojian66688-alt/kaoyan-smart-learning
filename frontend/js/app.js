@@ -261,6 +261,13 @@ class KaoyanApp {
     }
   }
 
+  tokenizeWords(text) {
+    if (!text) return "";
+    return text.replace(/\b([a-zA-Z]{2,})\b/g, (match) => {
+      return `<span class="word-token" data-word="${match.toLowerCase()}" onclick="app.onWordClick(event, '${match}')">${match}</span>`;
+    });
+  }
+
   renderPassage(text) {
     const container = document.getElementById("passageContent");
     if (!container) return;
@@ -272,9 +279,7 @@ class KaoyanApp {
       const trimmed = para.trim();
       if (!trimmed) return;
 
-      const wordsWithTokens = trimmed.replace(/\b([a-zA-Z]{2,})\b/g, (match) => {
-        return `<span class="word-token" data-word="${match.toLowerCase()}" onclick="app.onWordClick(event, '${match}')">${match}</span>`;
-      });
+      const wordsWithTokens = this.tokenizeWords(trimmed);
 
       html += `<div class="passage-paragraph" data-pid="${pIdx}">
         <span class="para-marker">P${pIdx + 1}</span>${wordsWithTokens}
@@ -308,14 +313,14 @@ class KaoyanApp {
           </div>
         `;
       } else {
-        // 客观题渲染单选选项
+        // 客观题渲染单选选项（选项中的英文单词与正文一样，可点击即时查词并加入生词本）
         bodyHtml = `<div class="options-container">` +
           q.options.map(opt => `
             <div class="option-item ${this.userAnswers[q.id] === opt.key ? 'selected' : ''}"
                  data-qid="${q.id}" data-key="${opt.key}"
                  onclick="app.selectOption('${q.id}', '${opt.key}')">
               <span class="option-key">${opt.key}.</span>
-              <span class="option-text">${opt.text}</span>
+              <span class="option-text">${this.tokenizeWords(opt.text)}</span>
             </div>
           `).join("") +
         `</div>`;
@@ -325,7 +330,7 @@ class KaoyanApp {
         <div class="question-card ${categoryClass}" id="q-card-${q.id}">
           <div class="question-stem">
             <span class="q-num">#${q.question_num}</span>
-            <span>${q.prompt}</span>
+            <span>${this.tokenizeWords(q.prompt)}</span>
             <span class="q-badge">${q.category || 'detail'}</span>
           </div>
           ${bodyHtml}
@@ -444,11 +449,26 @@ class KaoyanApp {
 
     const targetSpan = event.target;
     const parentPara = targetSpan.closest(".passage-paragraph");
-    let fullParaText = parentPara ? parentPara.innerText : "";
-    
-    const sentences = fullParaText.split(/(?<=[.!?])\s+/);
-    let matchedSentence = sentences.find(s => s.toLowerCase().includes(this.currentActiveWord)) || fullParaText.slice(0, 100);
-    this.currentActiveSentence = matchedSentence.trim();
+    const parentOption = targetSpan.closest(".option-item");
+    const parentStem = targetSpan.closest(".question-stem");
+
+    let contextSentence = "";
+    if (parentPara) {
+      const fullParaText = parentPara.innerText || "";
+      const sentences = fullParaText.split(/(?<=[.!?])\s+/);
+      const matched = sentences.find(s => s.toLowerCase().includes(this.currentActiveWord));
+      contextSentence = (matched || fullParaText.slice(0, 150)).trim();
+    } else if (parentOption) {
+      const optText = parentOption.querySelector(".option-text")?.innerText || parentOption.innerText || "";
+      const qNum = parentOption.closest(".question-card")?.querySelector(".q-num")?.innerText || "";
+      const key = parentOption.querySelector(".option-key")?.innerText || "";
+      contextSentence = `[${qNum} 选项 ${key}] ${optText.trim()}`;
+    } else if (parentStem) {
+      contextSentence = `[题干] ${parentStem.innerText.trim()}`;
+    } else {
+      contextSentence = targetSpan.innerText || "";
+    }
+    this.currentActiveSentence = contextSentence;
 
     // PRD 9.1: 严格模考模式下允许标记生词，但默认隐藏释义，以防考试作弊辅助
     const isMock = (this.currentMode === "strict_mock");
@@ -499,7 +519,13 @@ class KaoyanApp {
   async saveCurrentWord() {
     if (!this.currentActiveWord) return;
     const meaning = document.getElementById("popoverMeaning").innerText;
-    const source = `${this.currentGroupData?.exam_id || '考研真题'} ${this.currentGroupData?.title || ''}`;
+    let source = `${this.currentGroupData?.exam_id || '考研真题'} ${this.currentGroupData?.title || ''}`;
+    if (this.currentActiveSentence.startsWith("[")) {
+      const tagEnd = this.currentActiveSentence.indexOf("]");
+      if (tagEnd > 0) {
+        source += ` (${this.currentActiveSentence.slice(1, tagEnd)})`;
+      }
+    }
 
     try {
       const res = await fetch("/api/vocabulary/mark", {

@@ -66,6 +66,24 @@ def run_ui_test():
             time.sleep(0.5)
             print("6. Special training inference filter verified (AT-03).")
 
+            # 7b. 验证【答案选项里的单词点击查词与加入生词本】
+            opt_word = page.locator(".option-item .word-token").first
+            if opt_word.count() > 0:
+                opt_word_text = opt_word.inner_text()
+                opt_word.click()
+                time.sleep(0.5)
+                # 验证弹窗成功弹出并显示该选项词
+                pop_word = page.locator("#popoverWord").inner_text()
+                assert pop_word.lower() == opt_word_text.lower(), f"Expected {opt_word_text}, got {pop_word}"
+                pop_sent = page.locator("#popoverSentence").inner_text()
+                assert "选项" in pop_sent, f"Expected option context in sentence, got: {pop_sent}"
+                # 点击加入生词本
+                page.click("#btnSaveWord")
+                time.sleep(0.5)
+                print(f"6b. Option word lookup and FSRS saving verified for: {opt_word_text} ({pop_sent[:35]}...)")
+                page.click(".popover-close")
+                time.sleep(0.5)
+
         # 8. 切换到【FSRS背词】页面
         page.click("button[data-view='viewReview']")
         page.wait_for_selector(".flashcard-container")
