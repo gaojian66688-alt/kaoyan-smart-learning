@@ -228,7 +228,15 @@
 
           <!-- 全部已收录生词列表 -->
           <div class="all-vocab-section">
-            <h3>我的考研生词库 (<span id="totalVocabCount">0</span> 词)</h3>
+            <div class="vocab-header-bar">
+              <h3>我的考研生词库 (<span id="totalVocabCount">0</span> 词)</h3>
+              <div class="export-btn-group">
+                <span class="export-label">便携导出:</span>
+                <button class="btn-outline-sm" onclick="app.exportVocab('anki')">📥 Anki卡包</button>
+                <button class="btn-outline-sm" onclick="app.exportVocab('csv')">📊 CSV表格</button>
+                <button class="btn-outline-sm" onclick="app.exportVocab('json')">📄 JSON</button>
+              </div>
+            </div>
             <div class="vocab-list-table" id="vocabTable">
               <!-- 词表动态渲染 -->
             </div>
@@ -240,8 +248,15 @@
       <section id="viewMistakes" class="view-panel">
         <div class="mistakes-workspace">
           <div class="mistakes-header">
-            <h2>考研英语错题本</h2>
-            <p>保留完整题组上下文 · 标记真实错因 · 针对性弱项突破</p>
+            <div>
+              <h2>考研英语错题本</h2>
+              <p>保留完整题组上下文 · 标记真实错因 · 针对性弱项突破</p>
+            </div>
+            <div class="export-btn-group">
+              <span class="export-label">归档导出:</span>
+              <button class="btn-outline-sm" onclick="app.exportMistakes('markdown')">📝 Markdown归档</button>
+              <button class="btn-outline-sm" onclick="app.exportMistakes('json')">📄 JSON数据</button>
+            </div>
           </div>
           <div class="mistakes-list" id="mistakesListContainer">
             <!-- 错题卡片动态渲染 -->
@@ -277,6 +292,36 @@
               <p class="big-num text-warning" id="profTotalReviews">0</p>
               <span class="sub-text">科学间隔记忆</span>
             </div>
+          </div>
+
+          <!-- 学习趋势与深度能力画像看板 -->
+          <div class="trends-section">
+            <div class="trend-card">
+              <h3>
+                <span>🎯 考研题型正确率分布</span>
+                <span class="export-label">依据真实判卷</span>
+              </h3>
+              <div id="categoryBarsContainer">
+                <!-- 动态渲染各题型正确率进度条 -->
+              </div>
+            </div>
+
+            <div class="trend-card">
+              <h3>
+                <span>🧠 FSRS 记忆周期分布</span>
+                <span class="export-label">留存率: <strong id="fsrsRetentionRate" class="text-success">100%</strong></span>
+              </h3>
+              <div class="vocab-cycle-grid" id="vocabCycleGrid">
+                <!-- 动态渲染 FSRS 状态周期 -->
+              </div>
+            </div>
+          </div>
+
+          <div class="diagnostic-box" id="diagnosticBox">
+            <h4>🔍 AI 备考诊断与策略建议 (可解释实据)</h4>
+            <ul class="diagnostic-list" id="diagnosticList">
+              <!-- 动态渲染 AI 实据诊断 -->
+            </ul>
           </div>
 
           <div class="today-plan-card">

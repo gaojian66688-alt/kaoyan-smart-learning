@@ -19,10 +19,20 @@ class TestMultiSectionQAGate(unittest.TestCase):
         test_group_ids = [
             ("2024-en1-cloze-1", "cloze"),
             ("2024-en1-text-1", "reading_a"),
+            ("2024-en1-text-2", "reading_a"),
+            ("2024-en1-text-3", "reading_a"),
+            ("2024-en1-text-4", "reading_a"),
             ("2024-en1-reading-b-1", "reading_b"),
             ("2024-en1-trans-1", "translation"),
             ("2024-en1-writing-a", "writing_a"),
             ("2024-en1-writing-b", "writing_b"),
+            ("2024-en2-text-1", "reading_a"),
+            ("2024-en2-text-2", "reading_a"),
+            ("2024-en2-text-3", "reading_a"),
+            ("2024-en2-text-4", "reading_a"),
+            ("2024-en2-trans-1", "translation"),
+            ("2024-en2-writing-a", "writing_a"),
+            ("2024-en2-writing-b", "writing_b"),
         ]
 
         for gid, gtype in test_group_ids:

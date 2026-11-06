@@ -1,5 +1,6 @@
 import math
 from datetime import datetime, timedelta
+from app.database import utc_now
 from app.config import settings
 
 # FSRS standard constants
@@ -90,7 +91,7 @@ class FSRSScheduler:
         }
         """
         if now is None:
-            now = datetime.utcnow()
+            now = utc_now()
 
         if last_review_date is None or last_stability <= 0:
             # First time review

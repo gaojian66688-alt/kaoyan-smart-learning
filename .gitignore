@@ -11,6 +11,8 @@ ENV/
 
 # Database (optional - keep seed db or ignore runtime db)
 # kaoyan_learning.db
+backups/
+data/
 
 # Logs
 *.log

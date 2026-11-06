@@ -1,8 +1,11 @@
+import io
+import csv
+import json
 import uuid
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.database import get_db, utc_now
 from app.models.vocabulary import WordDict, UserVocabulary, VocabularyOccurrence, ReviewLog
 from app.models.user import LearningProfile
 from app.schemas.vocabulary import (
@@ -64,7 +67,7 @@ def mark_new_word(data: MarkWordRequest, db: Session = Depends(get_db)):
         UserVocabulary.word == clean_w
     ).first()
 
-    now = datetime.utcnow()
+    now = utc_now()
 
     if existing_vocab:
         # AT-07: 累加语境，词条去重归并
@@ -112,7 +115,7 @@ def mark_new_word(data: MarkWordRequest, db: Session = Depends(get_db)):
 
         # 档案计数加 1
         profile = db.query(LearningProfile).filter(LearningProfile.user_id == data.user_id).first()
-        today_str = datetime.utcnow().strftime("%Y-%m-%d")
+        today_str = utc_now().strftime("%Y-%m-%d")
         if profile:
             profile.total_vocabulary_marked += 1
         else:
@@ -196,7 +199,7 @@ def get_review_queue(user_id: str = "default_user", db: Session = Depends(get_db
     """
     获取今日到期需复习的 FSRS 卡片队列
     """
-    now = datetime.utcnow()
+    now = utc_now()
     vocabs = db.query(UserVocabulary).filter(
         UserVocabulary.user_id == user_id,
         UserVocabulary.due_date <= now
@@ -253,7 +256,7 @@ def review_feedback(data: ReviewFeedbackRequest, db: Session = Depends(get_db)):
     if data.rating not in [1, 2, 3, 4]:
         raise HTTPException(status_code=400, detail="Rating must be 1, 2, 3, or 4")
 
-    now = datetime.utcnow()
+    now = utc_now()
     res = default_fsrs.review(
         rating=data.rating,
         last_stability=vocab.stability or 0.0,
@@ -302,3 +305,70 @@ def review_feedback(data: ReviewFeedbackRequest, db: Session = Depends(get_db)):
         next_due_date=res["due_date"],
         new_state=res["state"]
     )
+
+@router.get("/export")
+def export_vocabulary(
+    user_id: str = "default_user",
+    format: str = Query("json", description="Export format: json, csv, or anki"),
+    db: Session = Depends(get_db)
+):
+    """
+    PRD 12.3: 生词本数据便携导出
+    支持 JSON、UTF-8 CSV 以及 Anki 制表符分隔文本 (TSV)
+    """
+    vocabs = db.query(UserVocabulary).filter(UserVocabulary.user_id == user_id).all()
+    
+    records = []
+    for v in vocabs:
+        first_occ = v.occurrences[0] if v.occurrences else None
+        records.append({
+            "word": v.word,
+            "phonetic": v.phonetic or "",
+            "definition": v.definition,
+            "occurrence_count": v.occurrence_count,
+            "stability": round(v.stability or 0.0, 2),
+            "difficulty": round(v.difficulty or 0.0, 2),
+            "reps": v.reps,
+            "lapses": v.lapses,
+            "context_sentence": first_occ.context_sentence if first_occ else "",
+            "source_info": first_occ.source_info if first_occ else ""
+        })
+
+    if format == "csv":
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=[
+            "word", "phonetic", "definition", "occurrence_count", "stability",
+            "difficulty", "reps", "lapses", "context_sentence", "source_info"
+        ])
+        writer.writeheader()
+        writer.writerows(records)
+        content = "\ufeff" + output.getvalue()  # Add UTF-8 BOM for Excel compatibility
+        return Response(
+            content=content,
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=kaoyan_vocabulary.csv"}
+        )
+
+    elif format == "anki":
+        # Anki TSV: Word \t Phonetic \t Definition \t Context Sentence \t Source
+        lines = []
+        for r in records:
+            ph = f"[{r['phonetic']}]" if r['phonetic'] else ""
+            sent = r['context_sentence'].replace("\t", " ").replace("\n", " ")
+            src = r['source_info'].replace("\t", " ")
+            lines.append(f"{r['word']}\t{ph}\t{r['definition']}\t{sent}\t{src}")
+        content = "\n".join(lines)
+        return Response(
+            content=content,
+            media_type="text/tab-separated-values; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=kaoyan_anki_deck.txt"}
+        )
+
+    else:
+        # Default JSON
+        content = json.dumps(records, ensure_ascii=False, indent=2)
+        return Response(
+            content=content,
+            media_type="application/json; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=kaoyan_vocabulary.json"}
+        )

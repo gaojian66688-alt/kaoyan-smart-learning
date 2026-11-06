@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime
+from app.database import utc_now
 from sqlalchemy.orm import Session
 from app.models.practice import Submission, GradeResult
 from app.models.exam import QuestionGroup, Question
@@ -126,7 +126,7 @@ class EvidenceBasedAIAnalyzer:
             evidence_json=json.dumps(evidence_items, ensure_ascii=False),
             recommendations_json=json.dumps(recommendations, ensure_ascii=False),
             model_version="rule_evidence_engine_v1",
-            created_at=datetime.utcnow()
+            created_at=utc_now()
         )
         db.add(report)
         db.commit()

@@ -401,6 +401,269 @@ def seed_database(db: Session):
                                     }
                                 }
                             ]
+                        },
+                        # Text 3: Generative AI and Fair Use
+                        {
+                            "id": "2024-en1-text-3",
+                            "group_type": "reading_a",
+                            "title": "Text 3",
+                            "source_info": "Adapted from Harvard Law Review: Fair Use and Intellectual Property in the Generative AI Era (2023)",
+                            "order_index": 3,
+                            "passage_text": (
+                                "Paragraph 1: When generative artificial intelligence systems began generating photorealistic paintings, "
+                                "award-winning musical compositions, and polished prose, techno-optimists proclaimed the dawn of democratized creativity. "
+                                "Yet behind these seamless algorithmic outputs lies a contentious legal and philosophical dispute over the intellectual commons. "
+                                "To train their massive neural networks, technology corporations have ingested billions of digitized books, artworks, and "
+                                "essays without the consent, credit, or compensation of human creators.\n\n"
+                                "Paragraph 2: Silicon Valley executives defend this widespread scraping under the doctrine of 'fair use,' "
+                                "arguing that AI models do not replicate copyrighted works, but rather learn statistical patterns in a manner "
+                                "analogous to human inspiration. Just as an aspiring novelist reads hundreds of classics to hone their craft, they argue, "
+                                "an algorithm merely digests existing culture to produce novel expressions. In their view, restricting access to training "
+                                "datasets would paralyze technological progress and stifle innovation.\n\n"
+                                "Paragraph 3: However, artists and legal scholars counter that this analogy misrepresents how computational models "
+                                "actually operate. Human learning is an embodied, interpretive endeavor informed by lived emotional experience, "
+                                "whereas generative AI is a statistical prediction engine designed to synthesize and redistribute copyrighted data "
+                                "at industrial scale. When commercial platforms monetize tools that directly displace human creators in commercial "
+                                "marketplaces, describing this process as 'fair use' stretches the legal doctrine past its breaking point.\n\n"
+                                "Paragraph 4: The economic repercussions are already reverberating across creative industries. Illustrators, voice "
+                                "actors, and freelance journalists find their livelihood undermined by automated systems trained on their own uncompensated "
+                                "portfolios. The risk is not merely financial hardship for individual practitioners, but the potential impoverishment of "
+                                "cultural diversity. If original creators are economically driven from their craft, future generative models will "
+                                "inevitably be forced to train on AI-generated synthetic data, culminating in a loop of creative stagnation.\n\n"
+                                "Paragraph 5: Resolving this impasse demands a recalibration of intellectual property policy for the algorithmic age. "
+                                "Courts and regulatory bodies must balance the encouragement of technological breakthrough with the ethical obligation "
+                                "to protect human dignity and creative labor. A viable resolution will likely involve mandatory provenance disclosure, "
+                                "collective licensing arrangements, and legally enforceable compensation models that honor the indispensable foundation "
+                                "provided by human artistry."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en1-q31",
+                                    "question_num": 31,
+                                    "order_index": 1,
+                                    "category": "detail",
+                                    "prompt": "Technology corporations justify scraping creative works by arguing that AI systems ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "operate strictly outside the commercial digital market"},
+                                        {"key": "B", "text": "absorb statistical patterns akin to human inspiration"},
+                                        {"key": "C", "text": "generate substantial royalty revenues for original authors"},
+                                        {"key": "D", "text": "are incapable of synthesizing complex linguistic structures"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "Just as an aspiring novelist reads hundreds of classics to hone their craft, they argue, an algorithm merely digests existing culture to produce novel expressions.",
+                                        "explanation": "【题型：细节题】第2段指出科技企业以类比人类学习灵感的方式辩护，主张算法吸收统计规律进行再创作。选项B（absorb statistical patterns akin to human inspiration）精准契合。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q32",
+                                    "question_num": 32,
+                                    "order_index": 2,
+                                    "category": "detail",
+                                    "prompt": "Artists and legal critics reject the 'human inspiration' analogy because computational models ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "require physical artistic instruments to execute ideas"},
+                                        {"key": "B", "text": "lack any systematic training dataset to learn from"},
+                                        {"key": "C", "text": "mass-reproduce copyrighted expressions without subjective life experience"},
+                                        {"key": "D", "text": "only reproduce content authorized by open-source licenses"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "C",
+                                        "evidence_sentence": "Human learning is an embodied, interpretive endeavor informed by lived emotional experience, whereas generative AI is a statistical prediction engine designed to synthesize and redistribute copyrighted data at industrial scale.",
+                                        "explanation": "【题型：对比细节题】第3段强调人类学习具有具身与情感体验，而AI只是工业化规模综合与分发数据的预测引擎，选项C准确概括。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q33",
+                                    "question_num": 33,
+                                    "order_index": 3,
+                                    "category": "inference",
+                                    "prompt": "What danger do creative industries face if original creators are displaced (Paragraph 4)?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "Creative models will suffer from a feedback loop of synthetic stagnation."},
+                                        {"key": "B", "text": "Traditional print media will monopolize global cultural distribution."},
+                                        {"key": "C", "text": "Commercial tech companies will voluntarily dissolve their AI operations."},
+                                        {"key": "D", "text": "Public demand for digital artworks will vanish entirely."}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "A",
+                                        "evidence_sentence": "future generative models will inevitably be forced to train on AI-generated synthetic data, culminating in a loop of creative stagnation.",
+                                        "explanation": "【题型：推理题】第4段末句警告，创作者被挤出市场后AI模型将不得不以AI合成数据训练，陷入创意停滞恶性循环。选项A精准对应。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q34",
+                                    "question_num": 34,
+                                    "order_index": 4,
+                                    "category": "vocabulary",
+                                    "prompt": "The word 'impasse' in Paragraph 5 is closest in meaning to ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "breakthrough"},
+                                        {"key": "B", "text": "dilemma"},
+                                        {"key": "C", "text": "acceleration"},
+                                        {"key": "D", "text": "prosperity"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "Resolving this impasse demands a recalibration of intellectual property policy for the algorithmic age.",
+                                        "explanation": "【题型：词义题】impasse 意为僵局、两难困境，与 dilemma 为精准同义词。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q35",
+                                    "question_num": 35,
+                                    "order_index": 5,
+                                    "category": "main_idea",
+                                    "prompt": "Which of the following would the author most likely support?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "Total exemption of commercial AI developers from all legal liability"},
+                                        {"key": "B", "text": "A complete ban on all computational algorithms in modern society"},
+                                        {"key": "C", "text": "Regulatory mechanisms ensuring provenance disclosure and fair artist compensation"},
+                                        {"key": "D", "text": "Leaving the digital creative commons entirely unregulated by law"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "C",
+                                        "evidence_sentence": "A viable resolution will likely involve mandatory provenance disclosure, collective licensing arrangements, and legally enforceable compensation models that honor the indispensable foundation provided by human artistry.",
+                                        "explanation": "【题型：主旨态度题】末段提出强制源头披露（provenance disclosure）与合法补偿机制（compensation models），选项C高度契合。"
+                                    }
+                                }
+                            ]
+                        },
+                        # Text 4: Post-Pandemic Public Transit
+                        {
+                            "id": "2024-en1-text-4",
+                            "group_type": "reading_a",
+                            "title": "Text 4",
+                            "source_info": "Adapted from Urban Studies: Reimagining Public Mobility After the Commuter Era (2023)",
+                            "order_index": 4,
+                            "passage_text": (
+                                "Paragraph 1: The seismic shift toward remote and hybrid work has precipitated a profound identity crisis "
+                                "for urban transit authorities across North America and Europe. For more than half a century, metropolitan transit "
+                                "systems were engineered around a singular logistical priority: funneling suburban office workers into downtown corporate "
+                                "cores during morning rush hours and returning them in the evening. With commute frequency permanently diminished, "
+                                "farebox revenues have plummeted, confronting municipal planners with an existential fiscal precipice.\n\n"
+                                "Paragraph 2: In response to catastrophic budgetary shortfalls, many cash-strapped agencies have defaulted to traditional "
+                                "austerity measures: cutting off-peak schedules, deferring capital maintenance, and hiking single-ride fares. Urban economists "
+                                "warn that this reaction initiates a notorious 'transit death spiral.' Reduced service reliability and longer wait times "
+                                "deter discretionary riders, leading to further revenue declines, which in turn prompt even deeper service reductions.\n\n"
+                                "Paragraph 3: To break this destructive feedback loop, progressive urbanists argue that transit systems must fundamentally "
+                                "pivot from commuter services to comprehensive mobility networks. The traditional rush-hour surge may have attenuated, "
+                                "but non-work trips—such as localized healthcare visits, school runs, retail excursions, and social gatherings—have "
+                                "rebounded to pre-pandemic peaks. Adapting to this decentralized travel pattern requires shifting resources away from "
+                                "radial commuter lines toward frequent, multi-directional neighborhood loops.\n\n"
+                                "Paragraph 4: Moreover, the societal dividend of robust public transit extends far beyond direct ticket revenue. "
+                                "Efficient public transportation represents an indispensable instrument for environmental decarbonization, urban "
+                                "congestion relief, and socioeconomic mobility for lower-income households who lack private automobiles. Treating "
+                                "mass transit as a commercial business that must generate operational profit obscures its true character as vital "
+                                "public infrastructure.\n\n"
+                                "Paragraph 5: Saving urban transit will ultimately require bold political leadership and restructured public finance. "
+                                "Sustainable transit networks cannot survive on farebox receipts alone; they necessitate dedicated municipal revenue "
+                                "mechanisms, such as congestion pricing zones and value-capture property taxes. By reimagining transit systems as "
+                                "dynamic conduits for community vitality rather than mere shuttles for office workers, cities can build more resilient, "
+                                "equitable, and sustainable metropolitan futures."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en1-q36",
+                                    "question_num": 36,
+                                    "order_index": 1,
+                                    "category": "detail",
+                                    "prompt": "Historically, metropolitan transit systems were designed primarily to ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "promote ecological tourism in distant suburban valleys"},
+                                        {"key": "B", "text": "transport suburban employees into downtown business cores"},
+                                        {"key": "C", "text": "reduce commercial rents in residential districts"},
+                                        {"key": "D", "text": "compete directly with intercity aviation carriers"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "funneling suburban office workers into downtown corporate cores during morning rush hours and returning them in the evening.",
+                                        "explanation": "【题型：细节题】第1段第2句指出传统交通系统专门为早晚高峰往返郊区与市中心白领设计，选项B精准对应。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q37",
+                                    "question_num": 37,
+                                    "order_index": 2,
+                                    "category": "inference",
+                                    "prompt": "Urban economists warn that austerity measures in transit agencies ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "encourage corporate subsidies for remote workers"},
+                                        {"key": "B", "text": "trigger a downward spiral of service cuts and rider attrition"},
+                                        {"key": "C", "text": "accelerate the transition toward fully autonomous buses"},
+                                        {"key": "D", "text": "permanently stabilize municipal farebox revenue"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "Urban economists warn that this reaction initiates a notorious 'transit death spiral.' Reduced service reliability and longer wait times deter discretionary riders, leading to further revenue declines...",
+                                        "explanation": "【题型：因果推断题】第2段警告紧缩削减引发“恶性循环”（transit death spiral），服务质量下降导致乘客流失与收入更低，选项B对应。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q38",
+                                    "question_num": 38,
+                                    "order_index": 3,
+                                    "category": "detail",
+                                    "prompt": "According to Paragraph 3, post-pandemic travel is characterized by ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "a sharp rise in long-distance intercity business trips"},
+                                        {"key": "B", "text": "an utter collapse in local non-work community journeys"},
+                                        {"key": "C", "text": "the resurgence of localized, non-work mobility throughout the day"},
+                                        {"key": "D", "text": "the exclusive reliance on private personal motorcars"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "C",
+                                        "evidence_sentence": "non-work trips—such as localized healthcare visits, school runs, retail excursions, and social gatherings—have rebounded to pre-pandemic peaks.",
+                                        "explanation": "【题型：细节题】第3段指出非通勤日常出行（医疗、通学、购物、社交）已反弹至峰值，呈现多时段、分散化特征，选项C精准对应。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q39",
+                                    "question_num": 39,
+                                    "order_index": 4,
+                                    "category": "detail",
+                                    "prompt": "The author points out that mass transit should not be treated as a purely commercial business because ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "private automobile manufacturers refuse to pay corporate taxes"},
+                                        {"key": "B", "text": "it serves as critical public infrastructure generating broad societal benefits"},
+                                        {"key": "C", "text": "downtown corporate headquarters no longer require electricity"},
+                                        {"key": "D", "text": "municipal authorities lack the legal authority to collect fees"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "Treating mass transit as a commercial business that must generate operational profit obscures its true character as vital public infrastructure.",
+                                        "explanation": "【题型：细节题】第4段阐明公共交通本质是关键公共基础设施，具备脱碳、减堵、促进社会公平等巨大社会红利，选项B准确概括。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q40",
+                                    "question_num": 40,
+                                    "order_index": 5,
+                                    "category": "main_idea",
+                                    "prompt": "To achieve long-term sustainability, urban transit systems must ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "rely exclusively on higher single-ride ticket fares"},
+                                        {"key": "B", "text": "eliminate all bus routes serving low-income communities"},
+                                        {"key": "C", "text": "secure diversified municipal public funding and adapt to community mobility"},
+                                        {"key": "D", "text": "transfer all transit operations to overseas private hedge funds"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "C",
+                                        "evidence_sentence": "Sustainable transit networks cannot survive on farebox receipts alone; they necessitate dedicated municipal revenue mechanisms... By reimagining transit systems as dynamic conduits for community vitality...",
+                                        "explanation": "【题型：主旨题】末段强调依靠多元公共财政支持（如拥堵费、土地增值税）并将交通网络重构为社区活力枢纽，选项C完全符合结论。"
+                                    }
+                                }
+                            ]
                         }
                     ]
                 },
@@ -823,6 +1086,532 @@ def seed_database(db: Session):
                                         "correct_answer": "B",
                                         "evidence_sentence": "When businesses lean into what machines cannot provide—warmth, curated serendipity, and shared community spaces—they find not just survival, but lasting cultural relevance.",
                                         "explanation": "【题型：主旨题】末段总结：深耕机器无法给予的人情味与独特体验，实体书店得以持久繁荣。选项B为主旨核心。"
+                                    }
+                                }
+                            ]
+                        },
+                        # Text 2: Sleep Hygiene and Cognitive Recovery
+                        {
+                            "id": "2024-en2-text-2",
+                            "group_type": "reading_a",
+                            "title": "Text 2",
+                            "source_info": "Adapted from Sleep Health Journal: Sleep Debt and Occupational Cognitive Performance (2023)",
+                            "order_index": 2,
+                            "passage_text": (
+                                "Paragraph 1: In high-pressure professional cultures, sleep deprivation is frequently romanticized as a badge of honor. "
+                                "Ambitious corporate climbers boast about operating on four hours of rest, equating self-inflicted exhaustion with "
+                                "dedication. Yet a mounting body of neuroscientific evidence demonstrates that chronic sleep restriction exacts a crushing "
+                                "toll on cognitive architecture, impairing emotional regulation, working memory, and complex decision-making.\n\n"
+                                "Paragraph 2: During restorative non-REM and REM sleep phases, the brain activates the glymphatic system—a specialized "
+                                "waste-clearance pathway that flushes out neurotoxic waste products, including beta-amyloid plaques. When sleep is curtailed, "
+                                "these cellular toxins accumulate in the prefrontal cortex. As a result, sleep-deprived individuals experience cognitive "
+                                "sluggishness, reduced attention span, and an alarming inability to assess their own cognitive impairment.\n\n"
+                                "Paragraph 3: The consequences extend well beyond individual health into corporate productivity. Studies estimate that "
+                                "fatigue-related productivity losses cost modern economies hundreds of billions of dollars annually. Fatigued employees "
+                                "exhibit higher error rates, poorer interpersonal collaboration, and a distinct tendency to make reckless financial gambles "
+                                "due to an overactive dopaminergic response to potential short-term gains.\n\n"
+                                "Paragraph 4: Recognizing this hidden liability, enlightened corporations are ditching the 'hustle-and-burn' ethos in "
+                                "favor of biological sustainability. Progressive firms have instituted mandatory downtime policies, prohibited late-night "
+                                "email transmissions, and installed on-site sleep pods. Rather than viewing rest as lost labor time, they regard sleep as an "
+                                "indispensable performance multiplier.\n\n"
+                                "Paragraph 5: Individual lifestyle modifications remain equally essential. Practicing disciplined digital hygiene—such "
+                                "as banishing blue-light emitting screens an hour before bed—and maintaining consistent circadian schedules are non-negotiable "
+                                "investments in cognitive longevity. High achievement is not achieved by sacrificing sleep, but by systematically optimizing it."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en2-q26",
+                                    "question_num": 26,
+                                    "order_index": 1,
+                                    "category": "detail",
+                                    "prompt": "In traditional corporate cultures, sleep deprivation has often been treated as ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "an unforgivable breach of workplace contract"},
+                                        {"key": "B", "text": "a commendable proof of personal dedication"},
+                                        {"key": "C", "text": "a dangerous liability causing instant dismissal"},
+                                        {"key": "D", "text": "a medical disorder requiring immediate leave"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "In high-pressure professional cultures, sleep deprivation is frequently romanticized as a badge of honor.",
+                                        "explanation": "【题型：细节题】第1段首句指出传统职场常将睡眠不足浪漫化为“荣誉勋章”（badge of honor），选项B（a commendable proof of personal dedication）准确概括。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q27",
+                                    "question_num": 27,
+                                    "order_index": 2,
+                                    "category": "detail",
+                                    "prompt": "What role does the glymphatic system play during sleep (Paragraph 2)?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "It synthesizes surplus carbohydrates for physical exertion."},
+                                        {"key": "B", "text": "It flushes out toxic cellular waste from the brain."},
+                                        {"key": "C", "text": "It stimulates adrenaline production for morning alertness."},
+                                        {"key": "D", "text": "It replaces damaged muscle tissue across the body."}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "the brain activates the glymphatic system—a specialized waste-clearance pathway that flushes out neurotoxic waste products...",
+                                        "explanation": "【题型：细节题】第2段直接说明胶质淋巴系统负责冲刷大脑中的神经毒性代谢废物，选项B精准对应。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q28",
+                                    "question_num": 28,
+                                    "order_index": 3,
+                                    "category": "inference",
+                                    "prompt": "According to Paragraph 3, fatigued workers are prone to risky financial decisions because ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "they face severe pay deductions from supervisors"},
+                                        {"key": "B", "text": "their dopamine system overreacts to short-term prospects"},
+                                        {"key": "C", "text": "they possess excessive confidence in market trends"},
+                                        {"key": "D", "text": "corporate regulations force them to act hastily"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "a distinct tendency to make reckless financial gambles due to an overactive dopaminergic response to potential short-term gains.",
+                                        "explanation": "【题型：因果推断题】第3段指出疲劳会导致对短期收益的多巴胺反应过度活跃，从而做出鲁莽财务决策，选项B完全符合。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q29",
+                                    "question_num": 29,
+                                    "order_index": 4,
+                                    "category": "detail",
+                                    "prompt": "How do progressive corporations view employee sleep nowadays (Paragraph 4)?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "As an essential performance multiplier"},
+                                        {"key": "B", "text": "As unproductive lost labor hours"},
+                                        {"key": "C", "text": "As a private matter outside company interest"},
+                                        {"key": "D", "text": "As a luxury permitted only on annual holidays"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "A",
+                                        "evidence_sentence": "Rather than viewing rest as lost labor time, they regard sleep as an indispensable performance multiplier.",
+                                        "explanation": "【题型：细节题】第4段末句明确说明，先锋企业将睡眠视为不可或缺的“效能倍增器”（performance multiplier），选项A契合。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q30",
+                                    "question_num": 30,
+                                    "order_index": 5,
+                                    "category": "main_idea",
+                                    "prompt": "The primary purpose of the text is to ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "urge the complete abolishment of professional deadlines"},
+                                        {"key": "B", "text": "highlight the vital cognitive value of sleep and promote restorative practices"},
+                                        {"key": "C", "text": "criticize consumer electronic devices for blue-light emissions"},
+                                        {"key": "D", "text": "demand financial compensation for overtime workers"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "High achievement is not achieved by sacrificing sleep, but by systematically optimizing it.",
+                                        "explanation": "【题型：主旨题】全文论证睡眠对认知功能的重大价值，呼吁职场与个人优化睡眠习惯，选项B为主旨精准概括。"
+                                    }
+                                }
+                            ]
+                        },
+                        # Text 3: Community Renewable Microgrids
+                        {
+                            "id": "2024-en2-text-3",
+                            "group_type": "reading_a",
+                            "title": "Text 3",
+                            "source_info": "Adapted from Energy Policy: Decentralized Microgrids and Community Energy Resilience (2023)",
+                            "order_index": 3,
+                            "passage_text": (
+                                "Paragraph 1: Extreme weather events, driven by accelerating climatic shifts, are subjecting traditional "
+                                "centralized electrical grids to catastrophic stress. In recent years, hurricanes, heat waves, and wildfires have "
+                                "repeatedly knocked out regional transmission lines, plunging millions into extended blackouts. In response, "
+                                "energy engineers and municipal leaders are accelerating the deployment of local microgrids—decentralized energy "
+                                "networks that can generate, store, and distribute clean power autonomously.\n\n"
+                                "Paragraph 2: Unlike conventional power grids that transmit electricity from distant coal or gas plants across hundreds "
+                                "of miles, microgrids operate within a localized footprint. Utilizing rooftop solar arrays, localized battery storage, "
+                                "and smart inverters, microgrids can instantaneously disconnect from the main utility grid during an outage. This "
+                                "'islanding' capability ensures that essential community infrastructure—such as hospitals, water treatment facilities, "
+                                "and emergency shelters—remains continuously powered.\n\n"
+                                "Paragraph 3: Microgrids also deliver compelling economic advantages. By generating and consuming power locally, communities "
+                                "minimize transmission line losses, which traditionally waste up to ten percent of all generated electricity. Furthermore, "
+                                "advanced algorithmic controllers allow microgrid operators to sell surplus stored power back to the regional grid during "
+                                "periods of peak demand, transforming local neighborhoods from passive utility customers into active energy producers.\n\n"
+                                "Paragraph 4: Nevertheless, broad adoption faces regulatory and financial hurdles. Legacy utility monopolies frequently "
+                                "resist decentralized systems that threaten their centralized revenue models. Outdated interconnection rules, high upfront "
+                                "capital expenses for battery systems, and bureaucratic permitting procedures continue to impede widespread municipal deployment.\n\n"
+                                "Paragraph 5: To unlock the full potential of community microgrids, governments must modernize grid regulations and "
+                                "provide targeted financing incentives. The future of electrical power is not a monolithic, vulnerable behemoth, but an agile, "
+                                "distributed web that empowers local communities with clean, resilient energy."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en2-q31",
+                                    "question_num": 31,
+                                    "order_index": 1,
+                                    "category": "detail",
+                                    "prompt": "Decentralized microgrids are being rapidly deployed primarily because ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "traditional centralized grids are increasingly vulnerable to extreme weather"},
+                                        {"key": "B", "text": "fossil fuel generation costs have dropped to near zero"},
+                                        {"key": "C", "text": "national transmission networks have been dismantled by law"},
+                                        {"key": "D", "text": "urban populations have moved entirely to off-grid wilderness"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "A",
+                                        "evidence_sentence": "Extreme weather events... are subjecting traditional centralized electrical grids to catastrophic stress... accelerating the deployment of local microgrids...",
+                                        "explanation": "【题型：细节题】第1段指出极端气候给传统中心化电网带来巨大压力频发大停电，促成了微电网的快速部署，选项A吻合。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q32",
+                                    "question_num": 32,
+                                    "order_index": 2,
+                                    "category": "detail",
+                                    "prompt": "The 'islanding' capability of a microgrid allows it to ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "shut down local power to save metropolitan electricity"},
+                                        {"key": "B", "text": "operate autonomously when the main power grid fails"},
+                                        {"key": "C", "text": "transmit power exclusively to overseas islands"},
+                                        {"key": "D", "text": "eliminate the need for renewable energy sources"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "microgrids can instantaneously disconnect from the main utility grid during an outage. This 'islanding' capability ensures that essential community infrastructure... remains continuously powered.",
+                                        "explanation": "【题型：细节解释题】第2段指出“孤岛运行”（islanding）能力使微电网在主电网故障时自主脱网持续供电，选项B准确。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q33",
+                                    "question_num": 33,
+                                    "order_index": 3,
+                                    "category": "inference",
+                                    "prompt": "Paragraph 3 indicates that microgrids can help communities economically by ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "eliminating all municipal property taxes"},
+                                        {"key": "B", "text": "reducing transmission losses and monetizing surplus energy"},
+                                        {"key": "C", "text": "subsidizing free electric vehicles for all residents"},
+                                        {"key": "D", "text": "replacing local financial institutions with battery banks"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "minimize transmission line losses... allow microgrid operators to sell surplus stored power back to the regional grid during periods of peak demand...",
+                                        "explanation": "【题型：推理题】第3段提到减少长距离线路损耗并在高峰期售卖多余电能，选项B精准总结。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q34",
+                                    "question_num": 34,
+                                    "order_index": 4,
+                                    "category": "detail",
+                                    "prompt": "According to Paragraph 4, what is a primary obstacle to microgrid adoption?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "A severe shortage of solar radiation in tropical zones"},
+                                        {"key": "B", "text": "Resistance from established utility monopolies and outdated rules"},
+                                        {"key": "C", "text": "The public's complete refusal to use battery storage"},
+                                        {"key": "D", "text": "The absence of digital computers in municipal offices"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "Legacy utility monopolies frequently resist decentralized systems... Outdated interconnection rules, high upfront capital expenses...",
+                                        "explanation": "【题型：细节题】第4段明确指出传统公用事业垄断抵触与过时的并网规定是主要阻碍，选项B精准对应。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q35",
+                                    "question_num": 35,
+                                    "order_index": 5,
+                                    "category": "main_idea",
+                                    "prompt": "The author concludes that future power infrastructure will be ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "monolithic and strictly controlled by regional monopolies"},
+                                        {"key": "B", "text": "distributed, resilient, and community-empowering"},
+                                        {"key": "C", "text": "dependent entirely on imported petroleum fuels"},
+                                        {"key": "D", "text": "prohibited in densely populated residential areas"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "The future of electrical power is not a monolithic, vulnerable behemoth, but an agile, distributed web that empowers local communities with clean, resilient energy.",
+                                        "explanation": "【题型：主旨结论题】末句明确指明未来电力形态为敏捷、分布式网络（distributed web），赋予社区清洁韧性，选项B完全契合。"
+                                    }
+                                }
+                            ]
+                        },
+                        # Text 4: Multigenerational Workplace Dynamics
+                        {
+                            "id": "2024-en2-text-4",
+                            "group_type": "reading_a",
+                            "title": "Text 4",
+                            "source_info": "Adapted from Harvard Business Review: Leading Multigenerational Teams (2023)",
+                            "order_index": 4,
+                            "passage_text": (
+                                "Paragraph 1: For the first time in modern industrial history, corporate workplaces routinely feature "
+                                "four distinct generations working side by side: Baby Boomers, Generation X, Millennials, and Generation Z. "
+                                "Popular media often depicts this generational convergence as an inescapable battlefield of conflicting values, "
+                                "contrasting tech-savvy digital natives with change-resistant senior managers. However, forward-thinking leaders "
+                                "recognize that age diversity, when managed with intentional empathy, is a potent driver of organizational resilience.\n\n"
+                                "Paragraph 2: The tension between generations rarely stems from irreconcilable differences in work ethic; rather, it "
+                                "reflects divergent communication preferences and formative historical experiences. Senior professionals typically "
+                                "value formal documentation, hierarchical consultation, and face-to-face negotiations. Younger employees, having grown up "
+                                "in an agile, hyperconnected environment, prioritize asynchronous messaging, transparency, and rapid iteration. When these "
+                                "unspoken assumptions collide without open dialogue, mutual frustration ensues.\n\n"
+                                "Paragraph 3: To bridge this cultural divide, successful enterprises dismantle generational silos through structured "
+                                "collaborative frameworks. Two-way mentorship programs—where senior executives share strategic domain wisdom and "
+                                "institutional memory, while junior staff introduce digital workflows and cultural trends—have proven remarkably effective. "
+                                "Such initiatives replace patronizing generational stereotypes with genuine reciprocal respect.\n\n"
+                                "Paragraph 4: Furthermore, age-diverse teams consistently outperform homogeneous groups in complex problem-solving. "
+                                "Senior colleagues contribute longitudinal perspective and risk management acumen, preventing costly repetitions of past "
+                                "mistakes. Simultaneously, younger cohorts bring fresh curiosity, challenging calcified company orthodoxies with disruptive "
+                                "approaches. This complementarity turns friction into creative synergy.\n\n"
+                                "Paragraph 5: Fostering an inclusive multigenerational workplace ultimately requires leadership to abandon one-size-fits-all "
+                                "policies. By honoring different life stages, offering flexible working modalities, and celebrating the unique contributions "
+                                "of every generation, organizations can transform demographic complexity into an enduring competitive advantage."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en2-q36",
+                                    "question_num": 36,
+                                    "order_index": 1,
+                                    "category": "detail",
+                                    "prompt": "How does popular media commonly portray the convergence of multiple generations in the workplace?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "As an inevitable conflict driven by clashing values"},
+                                        {"key": "B", "text": "As a perfectly harmonious collaboration"},
+                                        {"key": "C", "text": "As a temporary phenomenon that will end soon"},
+                                        {"key": "D", "text": "As an administrative matter solved by wage parity"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "A",
+                                        "evidence_sentence": "Popular media often depicts this generational convergence as an inescapable battlefield of conflicting values...",
+                                        "explanation": "【题型：细节题】第1段第2句指出大众媒体常将其描述为价值观冲突的“无法逃避的战场”，选项A准确对位。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q37",
+                                    "question_num": 37,
+                                    "order_index": 2,
+                                    "category": "inference",
+                                    "prompt": "According to Paragraph 2, generational friction is primarily caused by ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "fundamental differences in moral integrity"},
+                                        {"key": "B", "text": "divergent communication habits and formative backgrounds"},
+                                        {"key": "C", "text": "extreme competition over corporate stock grants"},
+                                        {"key": "D", "text": "unwillingness of younger workers to learn technical skills"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "The tension between generations rarely stems from irreconcilable differences in work ethic; rather, it reflects divergent communication preferences and formative historical experiences.",
+                                        "explanation": "【题型：因果推理题】第2段首句明确说明代际摩擦并非工作伦理对立，而是沟通偏好与成长背景不同，选项B契合。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q38",
+                                    "question_num": 38,
+                                    "order_index": 3,
+                                    "category": "detail",
+                                    "prompt": "Two-way mentorship programs are praised in Paragraph 3 because they ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "reduce corporate payroll expenses immediately"},
+                                        {"key": "B", "text": "foster reciprocal respect by exchanging different strengths"},
+                                        {"key": "C", "text": "transfer all executive authority to younger employees"},
+                                        {"key": "D", "text": "force older managers to retire early"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "where senior executives share strategic domain wisdom... while junior staff introduce digital workflows... replace patronizing generational stereotypes with genuine reciprocal respect.",
+                                        "explanation": "【题型：细节题】第3段指出双向师徒制让双方交流战略智慧与数字化技能，建立双向互信尊重，选项B契合。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q39",
+                                    "question_num": 39,
+                                    "order_index": 4,
+                                    "category": "detail",
+                                    "prompt": "Senior professionals contribute to multigenerational teams by offering ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "instant proficiency in cutting-edge social media software"},
+                                        {"key": "B", "text": "long-term perspective and experienced risk management"},
+                                        {"key": "C", "text": "unlimited willingness to work overtime every weekend"},
+                                        {"key": "D", "text": "unconditional acceptance of radical technological experiments"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "Senior colleagues contribute longitudinal perspective and risk management acumen, preventing costly repetitions of past mistakes.",
+                                        "explanation": "【题型：细节题】第4段第2句指出资深员工贡献长远视角（longitudinal perspective）与风险管控洞察，选项B准确。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en2-q40",
+                                    "question_num": 40,
+                                    "order_index": 5,
+                                    "category": "main_idea",
+                                    "prompt": "What is the author's primary advice for organizational leaders?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "Enforce identical standardized working procedures for everyone"},
+                                        {"key": "B", "text": "Embrace generational diversity with flexible, inclusive practices"},
+                                        {"key": "C", "text": "Segregate workers into separate generational business departments"},
+                                        {"key": "D", "text": "Hire employees exclusively within a narrow age bracket"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "By honoring different life stages, offering flexible working modalities, and celebrating the unique contributions of every generation, organizations can transform demographic complexity into an enduring competitive advantage.",
+                                        "explanation": "【题型：主旨题】末段建议摈弃一刀切管理，以包容多样性、提供灵活模式将代际差异化为竞争优势，选项B为主旨精准提炼。"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                # -------------------------------------------------------------
+                # Section III: Translation (英语二 英译汉整段翻译, 1题, 共15分)
+                # -------------------------------------------------------------
+                {
+                    "id": "2024-en2-sec-trans",
+                    "section_code": "translation",
+                    "title": "Section III Translation",
+                    "order_index": 3,
+                    "total_score": 15.0,
+                    "instructions": "Directions: Translate the following text into Chinese. Write your translation neatly on the ANSWER SHEET.",
+                    "groups": [
+                        {
+                            "id": "2024-en2-trans-1",
+                            "group_type": "translation",
+                            "title": "Translation (英译汉段落翻译)",
+                            "source_info": "National Graduate Entrance Exam 2024 English (II) Translation",
+                            "order_index": 1,
+                            "passage_text": (
+                                "In an increasingly interconnected global economy, small and medium-sized enterprises (SMEs) face "
+                                "unprecedented opportunities and challenges. While digital communication tools allow small enterprises to "
+                                "access international customers with minimal transaction overhead, cross-border operations also require rigorous "
+                                "adherence to diverse regulatory standards. Business founders must develop cultural agility, recognizing that local "
+                                "consumer preferences and commercial etiquettes differ substantially across overseas markets. Ultimately, the long-term "
+                                "success of international ventures hinges not merely on innovative products, but on building genuine trust through "
+                                "consistent reliability and responsive customer service."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en2-q46",
+                                    "question_num": 46,
+                                    "order_index": 1,
+                                    "category": "subjective",
+                                    "prompt": "Translate the paragraph into Chinese (15 points).",
+                                    "score": 15.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Full text in passage.",
+                                        "explanation": (
+                                            "【参考译文】在日益互联的全球经济中，中小企业（SME）面临着前所未有的机遇与挑战。"
+                                            "尽管数字化沟通工具使小型企业能够以极低的交易开销触达国际客户，但跨境业务也要求严格遵守多元的监管标准。"
+                                            "企业创始人必须培养文化敏锐度，认识到在海外市场中，当地消费者的偏好和商业礼仪存在显著差异。"
+                                            "归根结底，国际化业务的长期成功不仅取决于创新产品，更取决于通过持续的可靠性与及时的客户服务建立真正的信任。"
+                                        ),
+                                        "rubric_json": json.dumps([
+                                            {"band": "一档 (13-15分)", "criteria": "准确理解全文，段落逻辑顺畅，专业术语（transaction overhead, cultural agility, regulatory standards）翻译精准无遗漏。"},
+                                            {"band": "二档 (9-12分)", "criteria": "大意理解准确，行文通顺，有少量用词生硬但无重大语义误解。"},
+                                            {"band": "三档 (5-8分)", "criteria": "理解基本正确，错译部分关键句子，语句欠通顺，有生搬硬套现象。"},
+                                            {"band": "四档 (1-4分)", "criteria": "大面积误译或结构混乱，未能表达原文基本意思。"}
+                                        ], ensure_ascii=False)
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                # -------------------------------------------------------------
+                # Section IV: Writing (英语二 写作 Part A 10分 + Part B 15分, 共25分)
+                # -------------------------------------------------------------
+                {
+                    "id": "2024-en2-sec-writing",
+                    "section_code": "writing_a",
+                    "title": "Section IV Writing",
+                    "order_index": 4,
+                    "total_score": 25.0,
+                    "instructions": "Directions: Write your answers to Part A and Part B according to the instructions.",
+                    "groups": [
+                        # Part A 小作文 (10分)
+                        {
+                            "id": "2024-en2-writing-a",
+                            "group_type": "writing_a",
+                            "title": "Writing Part A (Apology Letter / Email)",
+                            "source_info": "National Graduate Entrance Exam 2024 English (II) Writing Part A",
+                            "order_index": 1,
+                            "passage_text": (
+                                "Directions:\n"
+                                "Suppose you borrowed a book from your professor, Professor Smith, and unfortunately accidentally damaged it. "
+                                "Write an email of about 100 words to:\n"
+                                "1) make an apology for the damage, and\n"
+                                "2) propose an appropriate solution or compensation.\n"
+                                "You should write neatly on the ANSWER SHEET. Do not sign your own name; use 'Li Ming' instead."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en2-q47",
+                                    "question_num": 47,
+                                    "order_index": 1,
+                                    "category": "subjective",
+                                    "prompt": "Write an apology email (about 100 words) according to the instructions.",
+                                    "score": 10.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Apology letter prompt.",
+                                        "explanation": "【写作要求与参考范文】道歉信需包含：诚恳致歉、损坏原因简述、补救措施（如购买同款新书替换并当面致歉）。格式规范，语气礼貌诚恳。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "一档 (9-10分)", "criteria": "书信格式规范完整，要点齐全（致歉原因、破损说明、赔偿或补购方案），语言得体地道。"},
+                                            {"band": "二档 (7-8分)", "criteria": "格式基本完备，表达清楚，少量语法小瑕疵。"},
+                                            {"band": "三档 (4-6分)", "criteria": "要点不全，语法错误较多，语气不够得体。"},
+                                            {"band": "四档 (1-3分)", "criteria": "偏离主题，语句不通，书写极少。"}
+                                        ], ensure_ascii=False)
+                                    }
+                                }
+                            ]
+                        },
+                        # Part B 大作文 (15分)
+                        {
+                            "id": "2024-en2-writing-b",
+                            "group_type": "writing_b",
+                            "title": "Writing Part B (Chart Essay)",
+                            "source_info": "National Graduate Entrance Exam 2024 English (II) Writing Part B",
+                            "order_index": 2,
+                            "passage_text": (
+                                "Directions:\n"
+                                "Write an essay of about 150 words based on the following pie chart showing college students' monthly expenditures.\n"
+                                "Categories: Food & Dining: 45%; Books & Academic Learning: 25%; Entertainment & Socializing: 20%; Others: 10%.\n"
+                                "In your essay, you should:\n"
+                                "1) describe the chart briefly, and\n"
+                                "2) interpret its causes and give your comments."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en2-q48",
+                                    "question_num": 48,
+                                    "order_index": 1,
+                                    "category": "subjective",
+                                    "prompt": "Write an essay (about 150 words) based on the pie chart of college students' expenditures.",
+                                    "score": 15.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Pie chart prompt.",
+                                        "explanation": "【图表写作三段论】首段描述饼状图数据（伙食45%居首，学业25%，娱乐社交20%，其他10%）；二段分析开支结构动因（重视学业与全面发展）；末段合理消费建议与财务规划建议。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "一档 (13-15分)", "criteria": "数据描述准确生动，原因剖析深入合理，三段论结构清晰，词汇语法地道流畅。"},
+                                            {"band": "二档 (10-12分)", "criteria": "数据覆盖全面，分析较合理，语言较通畅，语法错误少。"},
+                                            {"band": "三档 (6-9分)", "criteria": "数据描述不完整，分析浅显，语言错误较多。"},
+                                            {"band": "四档 (1-5分)", "criteria": "严重偏离图表，拼写语法错误密集。"}
+                                        ], ensure_ascii=False)
                                     }
                                 }
                             ]

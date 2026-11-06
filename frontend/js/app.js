@@ -835,6 +835,14 @@ class KaoyanApp {
     }
   }
 
+  exportVocab(format) {
+    window.open(`/api/vocabulary/export?user_id=${this.userId}&format=${format}`, "_blank");
+  }
+
+  exportMistakes(format) {
+    window.open(`/api/mistakes/export?user_id=${this.userId}&format=${format}`, "_blank");
+  }
+
   async loadProfile() {
     try {
       const res = await fetch(`/api/profile?user_id=${this.userId}`);
@@ -844,6 +852,76 @@ class KaoyanApp {
         document.getElementById("profAccuracy").innerText = `${p.overall_accuracy}%`;
         document.getElementById("profTotalWords").innerText = p.total_vocabulary_marked;
         document.getElementById("profTotalReviews").innerText = p.total_reviews_completed;
+      }
+
+      // 加载趋势与细分画像数据
+      const trendsRes = await fetch(`/api/profile/trends?user_id=${this.userId}`);
+      if (trendsRes.ok) {
+        const trends = await trendsRes.json();
+        
+        // 渲染题型正确率进度条
+        const catContainer = document.getElementById("categoryBarsContainer");
+        if (catContainer && trends.category_accuracy) {
+          catContainer.innerHTML = trends.category_accuracy.map(c => `
+            <div class="category-bar-row">
+              <div class="category-bar-info">
+                <span><strong>${c.category_name}</strong> (${c.correct}/${c.total}题)</span>
+                <span class="${c.accuracy >= 80 ? 'text-success' : (c.accuracy < 60 && c.total > 0 ? 'text-warning' : '')}">${c.accuracy}%</span>
+              </div>
+              <div class="category-bar-bg">
+                <div class="category-bar-fill" style="width: ${c.total > 0 ? c.accuracy : 0}%; background: ${c.accuracy >= 80 ? 'var(--success)' : (c.accuracy < 60 ? 'var(--warning)' : 'var(--primary)')}"></div>
+              </div>
+            </div>
+          `).join("");
+        }
+
+        // 渲染 FSRS 状态周期网格与留存率
+        const retEl = document.getElementById("fsrsRetentionRate");
+        if (retEl) retEl.innerText = `${trends.retention_rate}%`;
+
+        const cycleGrid = document.getElementById("vocabCycleGrid");
+        if (cycleGrid && trends.vocab_distribution) {
+          const vd = trends.vocab_distribution;
+          cycleGrid.innerHTML = `
+            <div class="cycle-box">
+              <div class="cycle-val">${vd.new_words}</div>
+              <div class="cycle-lbl">新收录</div>
+            </div>
+            <div class="cycle-box">
+              <div class="cycle-val text-primary">${vd.learning}</div>
+              <div class="cycle-lbl">初期巩固</div>
+            </div>
+            <div class="cycle-box">
+              <div class="cycle-val text-warning">${vd.review}</div>
+              <div class="cycle-lbl">复习周期中</div>
+            </div>
+            <div class="cycle-box">
+              <div class="cycle-val text-success">${vd.mastered}</div>
+              <div class="cycle-lbl">已深度掌握</div>
+            </div>
+            <div class="cycle-box">
+              <div class="cycle-val text-danger">${vd.relearning}</div>
+              <div class="cycle-lbl">遗忘重学</div>
+            </div>
+            <div class="cycle-box">
+              <div class="cycle-val">${vd.total}</div>
+              <div class="cycle-lbl">生词总量</div>
+            </div>
+          `;
+        }
+
+        // 渲染 AI 诊断列表
+        const diagList = document.getElementById("diagnosticList");
+        if (diagList) {
+          const diagItems = [];
+          if (trends.weak_points && trends.weak_points.length) {
+            trends.weak_points.forEach(wp => diagItems.push(`<li>⚠️ ${wp}</li>`));
+          }
+          if (trends.strengths && trends.strengths.length) {
+            trends.strengths.forEach(st => diagItems.push(`<li>✅ ${st}</li>`));
+          }
+          diagList.innerHTML = diagItems.join("");
+        }
       }
 
       const planRes = await fetch(`/api/profile/today-plan?user_id=${this.userId}`);

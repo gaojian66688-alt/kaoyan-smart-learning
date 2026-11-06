@@ -76,11 +76,21 @@ def run_ui_test():
         page.screenshot(path="screenshot_5_review.png")
         print("7. FSRS review flashcard and jump context button verified.")
 
-        # 9. 切换到【错题本】页面验证长难句结构与错因标签
+        # 9. 切换到【错题本】页面验证长难句结构、错因标签与导出按钮
         page.click("button[data-view='viewMistakes']")
         page.wait_for_selector(".mistakes-workspace")
         time.sleep(1)
-        print("8. Mistakes notebook syntax breakdown verified.")
+        md_export_btn = page.locator("button:has-text('Markdown归档')")
+        assert md_export_btn.count() > 0, "Mistakes markdown export button missing"
+        print("8. Mistakes notebook syntax breakdown & export button verified.")
+
+        # 10. 切换到【个人学习档案与趋势看板】页面
+        page.click("button[data-view='viewProfile']")
+        page.wait_for_selector(".trends-section")
+        time.sleep(1)
+        cat_bars = page.locator(".category-bar-row")
+        print(f"9. Profile trends loaded with {cat_bars.count()} category accuracy bars.")
+        page.screenshot(path="screenshot_6_profile.png")
 
         browser.close()
         print("All UI Playwright verification steps completed successfully!")

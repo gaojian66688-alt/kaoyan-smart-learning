@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, Float, Text, DateTime
-from app.database import Base
+from app.database import Base, utc_now
 
 class User(Base):
     __tablename__ = "users"
@@ -9,7 +9,7 @@ class User(Base):
     id = Column(String(64), primary_key=True)
     username = Column(String(64), unique=True, nullable=False)
     preferred_exam = Column(String(32), default="english_1")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 
 class LearningProfile(Base):
@@ -29,7 +29,7 @@ class LearningProfile(Base):
     total_reviews_completed = Column(Integer, default=0)
     consecutive_study_days = Column(Integer, default=1)
     last_active_date = Column(String(32), nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
 
 class AIReportRecord(Base):
@@ -45,7 +45,7 @@ class AIReportRecord(Base):
     evidence_json = Column(Text, nullable=False)  # JSON-encoded evidence items
     recommendations_json = Column(Text, nullable=True)
     model_version = Column(String(64), default="rule_evidence_engine_v1")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     def get_evidence(self):
         try:

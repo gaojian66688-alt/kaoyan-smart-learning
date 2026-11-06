@@ -20,3 +20,34 @@ class TodayPlanSchema(BaseModel):
     recommended_reading_group_id: Optional[str] = None
     recommended_reading_title: Optional[str] = None
     consecutive_days: int
+
+class CategoryStatItem(BaseModel):
+    category: str
+    category_name: str
+    total: int
+    correct: int
+    accuracy: float
+
+class DailyTrendItem(BaseModel):
+    date: str
+    attempted: int
+    correct: int
+    accuracy: float
+
+class VocabDistributionSchema(BaseModel):
+    new_words: int
+    learning: int
+    review: int
+    relearning: int
+    mastered: int
+    total: int
+
+class ProfileTrendsSchema(BaseModel):
+    user_id: str
+    overall_accuracy: float
+    retention_rate: float
+    category_accuracy: list[CategoryStatItem]
+    daily_trends: list[DailyTrendItem]
+    vocab_distribution: VocabDistributionSchema
+    weak_points: list[str]
+    strengths: list[str]

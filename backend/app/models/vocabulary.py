@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, Float, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.database import Base, utc_now
 
 class WordDict(Base):
     """
@@ -35,9 +35,9 @@ class UserVocabulary(Base):
     reps = Column(Integer, default=0)           # 历史有效复习次数
     lapses = Column(Integer, default=0)         # 遗忘次数 (rating=Again)
     state = Column(Integer, default=0)          # 0=New, 1=Learning, 2=Review, 3=Relearning
-    due_date = Column(DateTime, default=datetime.utcnow, index=True)
+    due_date = Column(DateTime, default=utc_now, index=True)
     last_review = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     occurrences = relationship("VocabularyOccurrence", back_populates="user_vocab", cascade="all, delete-orphan")
     review_logs = relationship("ReviewLog", back_populates="user_vocab", cascade="all, delete-orphan", order_by="ReviewLog.reviewed_at.desc()")
@@ -54,7 +54,7 @@ class VocabularyOccurrence(Base):
     context_sentence = Column(Text, nullable=False)  # 原文例句
     source_info = Column(String(255), nullable=False)  # e.g., 2024 考研英语（一）Text 1
     group_id = Column(String(64), nullable=True, index=True)
-    marked_at = Column(DateTime, default=datetime.utcnow)
+    marked_at = Column(DateTime, default=utc_now)
 
     user_vocab = relationship("UserVocabulary", back_populates="occurrences")
 
@@ -73,6 +73,6 @@ class ReviewLog(Base):
     difficulty_before = Column(Float, default=0.0)
     difficulty_after = Column(Float, default=0.0)
     interval_days = Column(Float, default=0.0)
-    reviewed_at = Column(DateTime, default=datetime.utcnow)
+    reviewed_at = Column(DateTime, default=utc_now)
 
     user_vocab = relationship("UserVocabulary", back_populates="review_logs")
