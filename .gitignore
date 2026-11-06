@@ -12,11 +12,13 @@ ENV/
 # Database (optional - keep seed db or ignore runtime db)
 # kaoyan_learning.db
 backups/
-data/
+/data/
 
 # Logs
 *.log
 .system_generated/
+scratch_pages/
+scratch_answers/
 
 # OS / Editor
 .DS_Store

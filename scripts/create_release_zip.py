@@ -13,7 +13,7 @@ def create_release_archive():
     print(f"Packaging project from {root_dir}...")
     
     # 过滤排除名单
-    EXCLUDE_DIRS = {".git", "__pycache__", ".pytest_cache", ".system_generated", "backups", "data"}
+    EXCLUDE_DIRS = {".git", "__pycache__", ".pytest_cache", ".system_generated", "backups", "scratch_pages", "scratch_answers"}
     EXCLUDE_EXTS = {".pyc", ".pyo", ".pyd"}
 
     # 使用临时文件生成 zip
@@ -23,8 +23,11 @@ def create_release_archive():
 
     with zipfile.ZipFile(temp_zip, "w", zipfile.ZIP_DEFLATED) as zf:
         for root, dirs, files in os.walk(root_dir):
-            # 过滤排除目录
-            dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+            # 过滤排除目录 (注意只过滤顶级 data，保留 backend/app/data)
+            dirs[:] = [
+                d for d in dirs 
+                if d not in EXCLUDE_DIRS and not (d == "data" and root == root_dir)
+            ]
             
             for file in files:
                 if file == "_temp_release.zip" or file.endswith(".zip"):

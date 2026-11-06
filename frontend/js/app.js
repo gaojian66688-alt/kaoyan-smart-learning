@@ -187,8 +187,27 @@ class KaoyanApp {
         const exams = await res.json();
         const sel = document.getElementById("examSelect");
         if (sel && exams.length > 0) {
-          sel.innerHTML = exams.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join("");
-          sel.value = this.currentExamId;
+          const en1 = exams.filter(e => e.exam_type === "english_1").sort((a, b) => b.year - a.year);
+          const en2 = exams.filter(e => e.exam_type === "english_2").sort((a, b) => b.year - a.year);
+          let html = "";
+          if (en1.length > 0) {
+            html += `<optgroup label="📘 考研英语（一）历年真题 (2004–2026)">`;
+            html += en1.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join("");
+            html += `</optgroup>`;
+          }
+          if (en2.length > 0) {
+            html += `<optgroup label="📙 考研英语（二）历年真题 (2007–2026)">`;
+            html += en2.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join("");
+            html += `</optgroup>`;
+          }
+          sel.innerHTML = html;
+          // 保持之前选中的考试或默认首张试卷
+          if (exams.some(e => e.id === this.currentExamId)) {
+            sel.value = this.currentExamId;
+          } else {
+            this.currentExamId = exams[0].id;
+            sel.value = this.currentExamId;
+          }
           await this.loadExamOutline(this.currentExamId);
         }
       }

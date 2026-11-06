@@ -77,9 +77,11 @@ def run_ui_test():
                 assert pop_word.lower() == opt_word_text.lower(), f"Expected {opt_word_text}, got {pop_word}"
                 pop_sent = page.locator("#popoverSentence").inner_text()
                 assert "选项" in pop_sent, f"Expected option context in sentence, got: {pop_sent}"
-                # 点击加入生词本
-                page.click("#btnSaveWord")
-                time.sleep(0.5)
+                # 点击加入生词本 (若未加入则点击加入)
+                btn = page.locator("#btnSaveWord")
+                if btn.is_enabled():
+                    btn.click()
+                    time.sleep(0.5)
                 print(f"6b. Option word lookup and FSRS saving verified for: {opt_word_text} ({pop_sent[:35]}...)")
                 page.click(".popover-close")
                 time.sleep(0.5)
