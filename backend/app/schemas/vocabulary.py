@@ -19,6 +19,7 @@ class MarkWordRequest(BaseModel):
 class VocabularyOccurrenceSchema(BaseModel):
     context_sentence: str
     source_info: str
+    group_id: Optional[str] = None
     marked_at: datetime
 
 class UserVocabularySchema(BaseModel):

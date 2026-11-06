@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -9,6 +9,9 @@ from app.schemas.practice import (
     SubmitRequest, SubmissionResponse, GradeResultSchema
 )
 from app.core.grading_engine import GradingEngine
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 router = APIRouter(prefix="/practice", tags=["Practice"])
 
@@ -86,15 +89,17 @@ def auto_save_responses(data: BatchResponseSave, db: Session = Depends(get_db)):
             Response.question_id == item.question_id
         ).first()
 
+        clean_ans = item.user_answer.strip() if item.user_answer else None
+
         if resp:
-            resp.user_answer = item.user_answer.strip().upper() if item.user_answer else None
-            resp.updated_at = datetime.utcnow()
+            resp.user_answer = clean_ans
+            resp.updated_at = utc_now()
         else:
             new_resp = Response(
                 id=str(uuid.uuid4()),
                 attempt_id=data.attempt_id,
                 question_id=item.question_id,
-                user_answer=item.user_answer.strip().upper() if item.user_answer else None,
+                user_answer=clean_ans,
                 is_final_snapshot=False
             )
             db.add(new_resp)
@@ -140,6 +145,8 @@ def submit_attempt(data: SubmitRequest, db: Session = Depends(get_db)):
             user_answer=gr.user_answer,
             correct_answer=gr.correct_answer,
             is_correct=gr.is_correct,
+            is_estimated=bool(gr.is_estimated),
+            score_band=gr.score_band,
             score=gr.score,
             max_score=gr.max_score,
             evidence_sentence=gr.evidence_sentence,
@@ -156,6 +163,8 @@ def submit_attempt(data: SubmitRequest, db: Session = Depends(get_db)):
         scope_id=submission.scope_id,
         total_score=submission.total_score,
         max_score=submission.max_score,
+        objective_score=submission.objective_score or 0.0,
+        subjective_score=submission.subjective_score or 0.0,
         accuracy=submission.accuracy,
         question_count=submission.question_count,
         correct_count=submission.correct_count,
@@ -177,6 +186,8 @@ def get_submission(submission_id: str, db: Session = Depends(get_db)):
             user_answer=gr.user_answer,
             correct_answer=gr.correct_answer,
             is_correct=gr.is_correct,
+            is_estimated=bool(gr.is_estimated),
+            score_band=gr.score_band,
             score=gr.score,
             max_score=gr.max_score,
             evidence_sentence=gr.evidence_sentence,
@@ -193,6 +204,8 @@ def get_submission(submission_id: str, db: Session = Depends(get_db)):
         scope_id=sub.scope_id,
         total_score=sub.total_score,
         max_score=sub.max_score,
+        objective_score=sub.objective_score or 0.0,
+        subjective_score=sub.subjective_score or 0.0,
         accuracy=sub.accuracy,
         question_count=sub.question_count,
         correct_count=sub.correct_count,

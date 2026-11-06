@@ -1,19 +1,21 @@
-// 考研英语智能学习系统前端应用控制器
+// 考研英语智能学习系统前端应用控制器 v1.1
 class KaoyanApp {
   constructor() {
     this.userId = "default_user";
     this.currentExamId = "2024-english-1";
     this.currentGroupId = "2024-en1-text-1";
     this.currentMode = "special_training"; // special_training / practice_full / strict_mock
+    this.currentCategoryFilter = "all";
     this.currentAttemptId = null;
     this.currentGroupData = null;
-    this.userAnswers = {}; // { question_id: "A" }
+    this.allExamData = null;
+    this.userAnswers = {}; // { question_id: "A" 或文本 }
     this.currentActiveWord = null;
     this.currentActiveSentence = "";
 
     // Timer & Auto-save
     this.timerInterval = null;
-    this.timerSeconds = 0;
+    this.timerSeconds = 0; // count-up in training, count-down from 10800 in strict_mock
     this.saveTimeout = null;
 
     // FSRS Review State
@@ -34,14 +36,7 @@ class KaoyanApp {
     if (examSelect) {
       examSelect.addEventListener("change", async (e) => {
         this.currentExamId = e.target.value;
-        // 自动选择该试卷的第一个阅读篇章
-        const targetGroupMap = {
-          "2024-english-1": "2024-en1-text-1",
-          "2024-english-2": "2024-en2-text-1",
-          "2023-english-1": "2023-en1-text-1"
-        };
-        this.currentGroupId = targetGroupMap[this.currentExamId] || "2024-en1-text-1";
-        await this.loadGroupData(this.currentGroupId);
+        await this.loadExamOutline(this.currentExamId);
       });
     }
 
@@ -83,11 +78,7 @@ class KaoyanApp {
 
   navTo(viewName, params = {}) {
     if (params.mode) {
-      this.currentMode = params.mode;
-      const badge = document.getElementById("practiceModeBadge");
-      if (badge) {
-        badge.innerText = params.mode === "strict_mock" ? "严格整卷模拟" : "专项训练";
-      }
+      this.switchPracticeMode(params.mode);
     }
     const viewMap = {
       "home": "viewHome",
@@ -100,7 +91,93 @@ class KaoyanApp {
   }
 
   // ==================================================
-  // 试卷与阅读作答系统
+  // 模式与板块切换控制 (PRD 5.1 & 7.2)
+  // ==================================================
+
+  switchPracticeMode(mode) {
+    this.currentMode = mode;
+    document.querySelectorAll(".pill-btn").forEach(btn => {
+      if (btn.getAttribute("data-mode") === mode) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+
+    const submitGroupBtn = document.getElementById("btnSubmitGroup");
+    const submitExamBtn = document.getElementById("btnSubmitExam");
+    const catFilterRow = document.getElementById("categoryFilterRow");
+    const tipEl = document.getElementById("passageTip");
+
+    if (mode === "strict_mock") {
+      // 严格模考模式：倒计时 180 分钟，屏蔽单篇交卷，屏蔽模考查词辅助
+      submitGroupBtn.style.display = "none";
+      submitExamBtn.style.display = "inline-block";
+      catFilterRow.style.display = "none";
+      tipEl.innerText = "⚠️ 严格模拟考试：全真限时180分钟，交卷后统一批改；点击生词仅打标收录，屏蔽即时释义以防辅助。";
+      this.startStrictMockTimer();
+    } else if (mode === "practice_full") {
+      // 日常整卷：保留全题型，单篇与整卷交卷均可用
+      submitGroupBtn.style.display = "inline-block";
+      submitExamBtn.style.display = "inline-block";
+      catFilterRow.style.display = "none";
+      tipEl.innerText = "💡 日常整卷模式：支持多板块自由切换作答，支持单篇即时批改或整卷统一交卷。";
+      this.startCountupTimer();
+    } else {
+      // 专项训练：支持题型细分，单篇批改
+      submitGroupBtn.style.display = "inline-block";
+      submitExamBtn.style.display = "none";
+      catFilterRow.style.display = "flex";
+      tipEl.innerText = "💡 专项训练模式：点击任意英文单词可即时查词并加入生词本，支持按题型高亮训练。";
+      this.startCountupTimer();
+    }
+
+    // 重新初始化会话
+    this.initPracticeAttempt(this.currentGroupId);
+  }
+
+  startCountupTimer() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    document.getElementById("timerLabel").innerText = "作答耗时:";
+    this.timerSeconds = 0;
+    this.timerInterval = setInterval(() => {
+      this.timerSeconds++;
+      const mins = String(Math.floor(this.timerSeconds / 60)).padStart(2, "0");
+      const secs = String(this.timerSeconds % 60).padStart(2, "0");
+      document.getElementById("timerDisplay").innerText = `${mins}:${secs}`;
+    }, 1000);
+  }
+
+  startStrictMockTimer() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    document.getElementById("timerLabel").innerText = "考试倒计时:";
+    this.timerSeconds = 180 * 60; // 180 分钟
+    this.timerInterval = setInterval(() => {
+      if (this.timerSeconds <= 0) {
+        clearInterval(this.timerInterval);
+        alert("模考时间到！系统正在自动提交试卷并进行全卷批改...");
+        this.confirmSubmit("exam");
+        return;
+      }
+      this.timerSeconds--;
+      const hours = String(Math.floor(this.timerSeconds / 3600)).padStart(2, "0");
+      const mins = String(Math.floor((this.timerSeconds % 3600) / 60)).padStart(2, "0");
+      const secs = String(this.timerSeconds % 60).padStart(2, "0");
+      document.getElementById("timerDisplay").innerText = `${hours}:${mins}:${secs}`;
+    }, 1000);
+  }
+
+  filterCategory(cat) {
+    this.currentCategoryFilter = cat;
+    document.querySelectorAll(".cat-pill").forEach(el => {
+      if (el.getAttribute("data-cat") === cat) el.classList.add("active");
+      else el.classList.remove("active");
+    });
+
+    // PRD 5.3 & AT-03: 题型筛选不破坏原题上下文，仅高亮目标题目
+    if (!this.currentGroupData) return;
+    this.renderQuestions(this.currentGroupData.questions);
+  }
+
+  // ==================================================
+  // 试卷与题组加载
   // ==================================================
 
   async loadExams() {
@@ -112,11 +189,56 @@ class KaoyanApp {
         if (sel && exams.length > 0) {
           sel.innerHTML = exams.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join("");
           sel.value = this.currentExamId;
+          await this.loadExamOutline(this.currentExamId);
         }
       }
     } catch (e) {
       console.error("Failed to load exams:", e);
     }
+  }
+
+  async loadExamOutline(examId) {
+    try {
+      const res = await fetch("/api/exams");
+      if (!res.ok) return;
+      const exams = await res.json();
+      const currentExam = exams.find(e => e.id === examId) || exams[0];
+      this.allExamData = currentExam;
+
+      // 渲染板块与题组导航按钮
+      const navContainer = document.getElementById("sectionNavigator");
+      let navHtml = "";
+      let firstGroupId = null;
+
+      currentExam.sections.forEach(sec => {
+        sec.question_groups.forEach(grp => {
+          if (!firstGroupId) firstGroupId = grp.id;
+          const isAct = (grp.id === this.currentGroupId);
+          navHtml += `
+            <button class="sec-btn ${isAct ? 'active' : ''}" data-gid="${grp.id}" onclick="app.selectQuestionGroup('${grp.id}')">
+              ${sec.title.includes('Reading') ? grp.title : sec.title.split(' ')[1] || grp.title}
+            </button>
+          `;
+        });
+      });
+
+      navContainer.innerHTML = navHtml;
+      if (firstGroupId && !document.querySelector(`.sec-btn[data-gid="${this.currentGroupId}"]`)) {
+        this.currentGroupId = firstGroupId;
+      }
+      await this.loadGroupData(this.currentGroupId);
+    } catch (e) {
+      console.error("Load outline error:", e);
+    }
+  }
+
+  async selectQuestionGroup(groupId) {
+    this.currentGroupId = groupId;
+    document.querySelectorAll(".sec-btn").forEach(btn => {
+      if (btn.getAttribute("data-gid") === groupId) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+    await this.loadGroupData(groupId);
   }
 
   async loadGroupData(groupId) {
@@ -126,8 +248,8 @@ class KaoyanApp {
       const data = await res.json();
       this.currentGroupData = data;
 
-      document.getElementById("readingTitleBadge").innerText = data.title;
       document.getElementById("passageSource").innerText = data.source_info || "考研英语官方真题";
+      document.getElementById("questionsPanelTitle").innerText = `${data.title} 题目 (共 ${data.questions.length} 题)`;
 
       this.renderPassage(data.passage_text);
       this.renderQuestions(data.questions);
@@ -143,7 +265,6 @@ class KaoyanApp {
     const container = document.getElementById("passageContent");
     if (!container) return;
 
-    // 按段落分割
     const paragraphs = text.split("\n\n");
     let html = "";
 
@@ -151,7 +272,6 @@ class KaoyanApp {
       const trimmed = para.trim();
       if (!trimmed) return;
 
-      // 段落内单词标记化处理，用于点词查义
       const wordsWithTokens = trimmed.replace(/\b([a-zA-Z]{2,})\b/g, (match) => {
         return `<span class="word-token" data-word="${match.toLowerCase()}" onclick="app.onWordClick(event, '${match}')">${match}</span>`;
       });
@@ -170,29 +290,61 @@ class KaoyanApp {
 
     let html = "";
     questions.forEach(q => {
-      const optionsHtml = q.options.map(opt => `
-        <div class="option-item ${this.userAnswers[q.id] === opt.key ? 'selected' : ''}"
-             data-qid="${q.id}" data-key="${opt.key}"
-             onclick="app.selectOption('${q.id}', '${opt.key}')">
-          <span class="option-key">${opt.key}.</span>
-          <span class="option-text">${opt.text}</span>
-        </div>
-      `).join("");
+      const isTargetCategory = (this.currentCategoryFilter === "all" || q.category === this.currentCategoryFilter);
+      const categoryClass = isTargetCategory ? (this.currentCategoryFilter !== "all" ? "highlighted-target" : "") : "dimmed-non-target";
+
+      const isSubjective = (q.category === "subjective" || !q.options || q.options.length === 0);
+
+      let bodyHtml = "";
+      if (isSubjective) {
+        // 主观题渲染输入框
+        const savedText = this.userAnswers[q.id] || "";
+        const wordCount = savedText.trim() ? savedText.trim().split(/\s+/).length : 0;
+        bodyHtml = `
+          <div class="subjective-textarea-box">
+            <textarea class="subjective-textarea" placeholder="在此输入作答内容..."
+                      oninput="app.onSubjectiveInput('${q.id}', event)">${savedText}</textarea>
+            <span class="word-counter" id="counter-${q.id}">已输入 ${savedText.length} 字 (约 ${wordCount} 词)</span>
+          </div>
+        `;
+      } else {
+        // 客观题渲染单选选项
+        bodyHtml = `<div class="options-container">` +
+          q.options.map(opt => `
+            <div class="option-item ${this.userAnswers[q.id] === opt.key ? 'selected' : ''}"
+                 data-qid="${q.id}" data-key="${opt.key}"
+                 onclick="app.selectOption('${q.id}', '${opt.key}')">
+              <span class="option-key">${opt.key}.</span>
+              <span class="option-text">${opt.text}</span>
+            </div>
+          `).join("") +
+        `</div>`;
+      }
 
       html += `
-        <div class="question-card" id="q-card-${q.id}">
+        <div class="question-card ${categoryClass}" id="q-card-${q.id}">
           <div class="question-stem">
             <span class="q-num">#${q.question_num}</span>
             <span>${q.prompt}</span>
+            <span class="q-badge">${q.category || 'detail'}</span>
           </div>
-          <div class="options-container">
-            ${optionsHtml}
-          </div>
+          ${bodyHtml}
         </div>
       `;
     });
 
     container.innerHTML = html;
+  }
+
+  onSubjectiveInput(questionId, event) {
+    const val = event.target.value;
+    this.userAnswers[questionId] = val;
+    const counter = document.getElementById(`counter-${questionId}`);
+    if (counter) {
+      const wordCount = val.trim() ? val.trim().split(/\s+/).length : 0;
+      counter.innerText = `已输入 ${val.length} 字 (约 ${wordCount} 词)`;
+    }
+    this.triggerAutoSave();
   }
 
   async initPracticeAttempt(groupId) {
@@ -202,8 +354,8 @@ class KaoyanApp {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: this.currentMode,
-          target_type: "group",
-          target_id: groupId,
+          target_type: (this.currentMode === "special_training" ? "group" : "exam"),
+          target_id: (this.currentMode === "special_training" ? groupId : this.currentExamId),
           user_id: this.userId
         })
       });
@@ -212,29 +364,15 @@ class KaoyanApp {
         const att = await res.json();
         this.currentAttemptId = att.id;
         this.userAnswers = att.saved_responses || {};
-        this.timerSeconds = att.time_spent_seconds || 0;
 
         // 恢复选中状态
         for (const [qid, ans] of Object.entries(this.userAnswers)) {
           this.applyOptionVisual(qid, ans);
         }
-
-        this.startTimer();
       }
     } catch (e) {
       console.error("Init attempt error:", e);
     }
-  }
-
-  startTimer() {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-    const display = document.getElementById("timerDisplay");
-    this.timerInterval = setInterval(() => {
-      this.timerSeconds++;
-      const mins = String(Math.floor(this.timerSeconds / 60)).padStart(2, "0");
-      const secs = String(this.timerSeconds % 60).padStart(2, "0");
-      if (display) display.innerText = `${mins}:${secs}`;
-    }, 1000);
   }
 
   selectOption(questionId, key) {
@@ -297,53 +435,59 @@ class KaoyanApp {
   }
 
   // ==================================================
-  // 点词查义与加入生词本 (PRD 09)
+  // 点词查义与加入生词本 (PRD 9.1: 模考隐藏释义)
   // ==================================================
 
   async onWordClick(event, word) {
     event.stopPropagation();
     this.currentActiveWord = word.toLowerCase();
 
-    // 提取当前点击词所在的句子作为真题原句上下文
     const targetSpan = event.target;
     const parentPara = targetSpan.closest(".passage-paragraph");
     let fullParaText = parentPara ? parentPara.innerText : "";
     
-    // 粗略以句号分割取句子
     const sentences = fullParaText.split(/(?<=[.!?])\s+/);
     let matchedSentence = sentences.find(s => s.toLowerCase().includes(this.currentActiveWord)) || fullParaText.slice(0, 100);
     this.currentActiveSentence = matchedSentence.trim();
 
+    // PRD 9.1: 严格模考模式下允许标记生词，但默认隐藏释义，以防考试作弊辅助
+    const isMock = (this.currentMode === "strict_mock");
+
     const popover = document.getElementById("wordPopover");
     document.getElementById("popoverWord").innerText = this.currentActiveWord;
-    document.getElementById("popoverPhonetic").innerText = "/查询中.../";
-    document.getElementById("popoverMeaning").innerText = "释义加载中...";
+    document.getElementById("popoverPhonetic").innerText = isMock ? "/模考状态/" : "/查询中.../";
+    document.getElementById("popoverMeaning").innerText = isMock ? "【模考锁定】严格模考进行中，释义与翻译已隐藏。点击下方可标记加入生词本，交卷后进入复习。" : "释义加载中...";
     document.getElementById("popoverSentence").innerText = this.currentActiveSentence;
 
-    // 定位 popover
     const rect = targetSpan.getBoundingClientRect();
     popover.style.top = `${Math.min(window.innerHeight - 200, rect.bottom + window.scrollY + 6)}px`;
     popover.style.left = `${Math.max(10, Math.min(window.innerWidth - 300, rect.left + window.scrollX - 20))}px`;
     popover.classList.remove("hidden");
 
-    try {
-      const res = await fetch(`/api/vocabulary/lookup?word=${encodeURIComponent(this.currentActiveWord)}&user_id=${this.userId}`);
-      if (res.ok) {
-        const data = await res.json();
-        document.getElementById("popoverPhonetic").innerText = data.phonetic ? `/${data.phonetic}/` : "";
-        document.getElementById("popoverMeaning").innerText = data.meaning;
+    if (!isMock) {
+      try {
+        const res = await fetch(`/api/vocabulary/lookup?word=${encodeURIComponent(this.currentActiveWord)}&user_id=${this.userId}`);
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById("popoverPhonetic").innerText = data.phonetic ? `/${data.phonetic}/` : "";
+          document.getElementById("popoverMeaning").innerText = data.meaning;
 
-        const saveBtn = document.getElementById("btnSaveWord");
-        if (data.is_saved) {
-          saveBtn.innerText = "✓ 已在生词本";
-          saveBtn.disabled = true;
-        } else {
-          saveBtn.innerText = "+ 加入生词本 (纳入 FSRS)";
-          saveBtn.disabled = false;
+          const saveBtn = document.getElementById("btnSaveWord");
+          if (data.is_saved) {
+            saveBtn.innerText = "✓ 已在生词本";
+            saveBtn.disabled = true;
+          } else {
+            saveBtn.innerText = "+ 加入生词本 (纳入 FSRS)";
+            saveBtn.disabled = false;
+          }
         }
+      } catch (e) {
+        console.error("Word lookup error:", e);
       }
-    } catch (e) {
-      console.error("Word lookup error:", e);
+    } else {
+      const saveBtn = document.getElementById("btnSaveWord");
+      saveBtn.innerText = "📌 标记生词 (考后复习)";
+      saveBtn.disabled = false;
     }
   }
 
@@ -376,7 +520,6 @@ class KaoyanApp {
         saveBtn.innerText = "✓ 已成功收录至 FSRS";
         saveBtn.disabled = true;
 
-        // 高亮文章中所有该词
         document.querySelectorAll(`.word-token[data-word="${this.currentActiveWord}"]`).forEach(el => {
           el.classList.add("saved-word");
         });
@@ -389,20 +532,15 @@ class KaoyanApp {
   }
 
   // ==================================================
-  // 主动提交批改与 AI 证据化诊断 (PRD 08)
+  // 主动提交批改与分层评分 (PRD 8.1 & 8.4)
   // ==================================================
 
   async confirmSubmit(scope = "group") {
-    // 检查是否有未作答题目
-    const totalQuestions = this.currentGroupData?.questions?.length || 5;
-    const answeredCount = Object.keys(this.userAnswers).length;
-    if (answeredCount < totalQuestions) {
-      const proceed = confirm(`当前单元共 ${totalQuestions} 题，您已作答 ${answeredCount} 题。确认提交并锁定答案吗？`);
-      if (!proceed) return;
-    } else {
-      const proceed = confirm("本次提交将锁定当前单元作答并由统一内核评分。确认提交吗？");
-      if (!proceed) return;
-    }
+    const targetId = (scope === "exam" ? this.currentExamId : this.currentGroupId);
+    const scopeName = (scope === "exam" ? "整卷" : "当前单元");
+
+    const proceed = confirm(`本次提交将锁定 ${scopeName} 作答并由统一内核评分。确认提交吗？`);
+    if (!proceed) return;
 
     try {
       const res = await fetch("/api/practice/submit", {
@@ -411,7 +549,7 @@ class KaoyanApp {
         body: JSON.stringify({
           attempt_id: this.currentAttemptId,
           scope: scope,
-          scope_id: this.currentGroupId,
+          scope_id: targetId,
           user_id: this.userId
         })
       });
@@ -430,22 +568,20 @@ class KaoyanApp {
 
   async showGradeResults(subData) {
     document.getElementById("modalScore").innerText = `${subData.total_score} / ${subData.max_score} 分`;
-    document.getElementById("modalAccuracy").innerText = `${subData.accuracy}%`;
-    document.getElementById("modalScope").innerText = subData.scope === "group" ? "单篇批改" : "整卷批改";
+    document.getElementById("modalObjScore").innerText = `${subData.objective_score || 0.0} 分`;
+    document.getElementById("modalSubjScore").innerText = `${subData.subjective_score || 0.0} 分 (估)`;
+    document.getElementById("modalScope").innerText = subData.scope === "group" ? "单篇批改" : (subData.scope === "section" ? "板块批改" : "整卷批改");
 
-    // 逐题渲染
     const grid = document.getElementById("modalQuestionsFeedback");
     grid.innerHTML = subData.results.map(r => `
-      <div class="result-tag-box ${r.is_correct ? 'correct' : 'wrong'}" onclick="app.highlightEvidence('${r.question_id}')">
-        <span class="q-title">#${r.question_num} ${r.is_correct ? '✓ 正确' : '✗ 错误'}</span>
-        <span class="ans-info">你的选择: ${r.user_answer || '未答'} | 标准: ${r.correct_answer}</span>
+      <div class="result-tag-box ${r.is_correct ? 'correct' : 'wrong'}">
+        <span class="q-title">#${r.question_num} ${r.is_correct ? '✓ 达标' : '✗ 失分'}</span>
+        <span class="ans-info">${r.is_estimated ? r.score_band : `得分: ${r.score}/${r.max_score}分`}</span>
       </div>
     `).join("");
 
-    // 打开模态框
     document.getElementById("gradeModal").classList.remove("hidden");
 
-    // 请求证据化 AI 学习诊断报告
     try {
       const aiRes = await fetch(`/api/analysis/generate/${subData.id}?user_id=${this.userId}`, { method: "POST" });
       if (aiRes.ok) {
@@ -470,18 +606,12 @@ class KaoyanApp {
     }
   }
 
-  highlightEvidence(questionId) {
-    const q = this.currentGroupData?.questions?.find(x => x.id === questionId);
-    if (!q) return;
-    alert(`定位提示：请查看题 #${q.question_num} 对应的定位句。`);
-  }
-
   closeGradeModal() {
     document.getElementById("gradeModal").classList.add("hidden");
   }
 
   // ==================================================
-  // FSRS 记忆卡片与复习系统 (PRD 09)
+  // FSRS 记忆卡片与双向回跳 (PRD 9.2 & 二.3)
   // ==================================================
 
   async loadReviewQueue() {
@@ -540,6 +670,31 @@ class KaoyanApp {
     }
   }
 
+  // PRD 二.3: 背词时支持回跳原阅读文章查看语境
+  async jumpToOriginalReading() {
+    if (!this.reviewQueue || this.currentReviewIndex >= this.reviewQueue.length) return;
+    const item = this.reviewQueue[this.currentReviewIndex];
+    const occ = item.occurrences && item.occurrences.length > 0 ? item.occurrences[0] : null;
+
+    if (!occ || !occ.group_id) {
+      alert("未找到该词对应的原阅读文章 ID");
+      return;
+    }
+
+    // 切换至练习视图
+    this.switchView("viewPractice");
+    await this.selectQuestionGroup(occ.group_id);
+
+    // 平滑滚动并高亮该单词
+    setTimeout(() => {
+      const wordToken = document.querySelector(`.word-token[data-word="${item.word}"]`);
+      if (wordToken) {
+        wordToken.scrollIntoView({ behavior: "smooth", block: "center" });
+        wordToken.classList.add("target-highlight");
+      }
+    }, 400);
+  }
+
   async submitFsrsRating(rating) {
     if (!this.reviewQueue || this.currentReviewIndex >= this.reviewQueue.length) return;
     const item = this.reviewQueue[this.currentReviewIndex];
@@ -585,7 +740,7 @@ class KaoyanApp {
   }
 
   // ==================================================
-  // 错题本复盘系统 (PRD 10.1)
+  // 错题本复盘与长难句结构拆解 (PRD 10.1 & 二.4)
   // ==================================================
 
   async loadMistakes() {
@@ -610,9 +765,13 @@ class KaoyanApp {
             </div>
             <div class="mistake-prompt">${m.prompt}</div>
             <div class="mistake-answers-bar">
-              <span>你的错误选择: <strong>${m.last_user_answer}</strong></span>
+              <span>你的错误选择: <strong>${m.last_user_answer || '未作答'}</strong></span>
               <span style="color:#16a34a;">官方标准答案: <strong>${m.correct_answer}</strong></span>
             </div>
+            ${m.syntax_analysis ? `<div class="syntax-box">📐 <strong>长难句语法结构剖析：</strong>${m.syntax_analysis}</div>` : ''}
+            ${m.detected_vocabulary_gaps && m.detected_vocabulary_gaps.length > 0 ? `
+              <div class="vocab-gaps-box">⚠️ <strong>检出相关词汇盲区：</strong>${m.detected_vocabulary_gaps.join(", ")}（建议在 FSRS 中优先复习）</div>
+            ` : ''}
             <div class="mistake-explanation-box">
               <strong>权威解析与定位句：</strong>${m.explanation}
             </div>
@@ -653,7 +812,7 @@ class KaoyanApp {
   }
 
   // ==================================================
-  // 个人学习档案与仪表盘 (PRD 10.2 & 10.3)
+  // 个人学习档案与今日计划 (PRD 10.2 & 10.3)
   // ==================================================
 
   async updateDashboard() {
@@ -697,7 +856,7 @@ class KaoyanApp {
             <span class="mode-badge">${plan.due_reviews_count} 词待复习</span>
           </li>
           <li class="plan-step-item">
-            <span>📕 阶段二：复盘历史错题与逻辑偏差</span>
+            <span>📕 阶段二：复盘历史错题与长难句结构</span>
             <span class="mode-badge">${plan.unconsolidated_mistakes_count} 道错题未攻克</span>
           </li>
           <li class="plan-step-item">

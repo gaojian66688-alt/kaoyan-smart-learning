@@ -138,6 +138,7 @@ def mark_new_word(data: MarkWordRequest, db: Session = Depends(get_db)):
         VocabularyOccurrenceSchema(
             context_sentence=o.context_sentence,
             source_info=o.source_info,
+            group_id=o.group_id,
             marked_at=o.marked_at
         )
         for o in target_vocab.occurrences
@@ -168,6 +169,7 @@ def list_user_vocabulary(user_id: str = "default_user", db: Session = Depends(ge
             VocabularyOccurrenceSchema(
                 context_sentence=o.context_sentence,
                 source_info=o.source_info,
+                group_id=o.group_id,
                 marked_at=o.marked_at
             )
             for o in v.occurrences
@@ -215,6 +217,7 @@ def get_review_queue(user_id: str = "default_user", db: Session = Depends(get_db
             VocabularyOccurrenceSchema(
                 context_sentence=o.context_sentence,
                 source_info=o.source_info,
+                group_id=o.group_id,
                 marked_at=o.marked_at
             )
             for o in v.occurrences

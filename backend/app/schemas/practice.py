@@ -39,6 +39,8 @@ class GradeResultSchema(BaseModel):
     user_answer: Optional[str] = None
     correct_answer: str
     is_correct: bool
+    is_estimated: bool = False
+    score_band: Optional[str] = None
     score: float
     max_score: float
     evidence_sentence: Optional[str] = None
@@ -55,6 +57,8 @@ class SubmissionResponse(BaseModel):
     scope_id: str
     total_score: float
     max_score: float
+    objective_score: float = 0.0
+    subjective_score: float = 0.0
     accuracy: float
     question_count: int
     correct_count: int

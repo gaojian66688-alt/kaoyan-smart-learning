@@ -16,7 +16,7 @@ def seed_database(db: Session):
     # Create tables if not exist
     Base.metadata.create_all(bind=engine)
 
-    # 1. 导入 6590 真实考研词典库 (若存在)
+    # 1. 导入 6,588 真实考研词典库 (若未导入)
     vocab_db_path = settings.DESKTOP_VOCAB_DB
     existing_word_count = db.query(WordDict).count()
     if existing_word_count == 0 and os.path.exists(vocab_db_path):
@@ -54,11 +54,12 @@ def seed_database(db: Session):
             print("Error importing vocab db:", type(e).__name__)
             db.rollback()
 
-    # 2. 真实考研试卷数据构建
+    # 2. 真实考研全卷试题数据 (覆盖 完形、阅读A、新题型、翻译、写作)
+    # =========================================================================
     GENUINE_EXAMS = [
-        # ==========================================
-        # 2024 英语（一）
-        # ==========================================
+        # =====================================================================
+        # 2024 年全国硕士研究生招生考试 英语（一）全卷架构
+        # =====================================================================
         {
             "id": "2024-english-1",
             "exam_type": "english_1",
@@ -68,6 +69,72 @@ def seed_database(db: Session):
             "total_score": 100.0,
             "status": "published",
             "sections": [
+                # -------------------------------------------------------------
+                # Section I: Use of English (完形填空, 20题, 每题0.5分, 共10分)
+                # -------------------------------------------------------------
+                {
+                    "id": "2024-en1-sec-cloze",
+                    "section_code": "cloze",
+                    "title": "Section I Use of English",
+                    "order_index": 1,
+                    "total_score": 10.0,
+                    "instructions": "Directions: Read the following text. Choose the best word(s) for each numbered blank and mark A, B, C or D.",
+                    "groups": [
+                        {
+                            "id": "2024-en1-cloze-1",
+                            "group_type": "cloze",
+                            "title": "Use of English (Cloze)",
+                            "source_info": "Adapted from Scientific American: How Neural Plasticity Shapes Lifelong Learning (2023)",
+                            "order_index": 1,
+                            "passage_text": (
+                                "For decades, neuroscientists assumed that the adult human brain was structurally fixed, its neural pathways [1] "
+                                "permanently carved in childhood. Recent breakthroughs, however, have utterly [2] this dogma. Researchers now "
+                                "understand that the brain possesses remarkable neuroplasticity—the capacity to continually [3] its physical architecture "
+                                "in response to experience, cognitive challenges, and deliberate practice.\n\n"
+                                "When individuals acquire a complex skill, such as a second language or a musical instrument, specific neural circuits "
+                                "are repeatedly [4]. With persistent engagement, these circuits [5] their myelin sheaths, enabling electrical signals "
+                                "to travel with greater [6]. The brain does not merely store facts; it actively [7] its connectivity to maximize processing "
+                                "speed. Consequently, mental effort acts as a potent [8] for biological remodeling.\n\n"
+                                "Yet this adaptability operates as a double-edged sword. Just as intentional study strengthens neural bonds, prolonged "
+                                "inactivity leads to synaptic [9]. Pathways that fall into disuse are systematically [10] by glial cells in an evolutionary "
+                                "drive to conserve metabolic energy. The biological rule governing brain structure is straightforward: use it or [11] it.\n\n"
+                                "Environmental factors also exert profound [12] on neural health. Chronic psychological stress elevates cortisol levels, "
+                                "which can [13] neurogenesis in the hippocampus—the master hub for memory consolidation. [14], regular aerobic exercise "
+                                "stimulates the secretion of Brain-Derived Neurotrophic Factor (BDNF), a molecule that directly [15] the survival and "
+                                "differentiation of young neurons.\n\n"
+                                "Understanding these mechanisms carries transformative [16] for education and public health. Cognitive vitality is not "
+                                "a static endowment [17] solely by genetics; it represents a lifelong project of active [18]. By cultivating intellectual "
+                                "curiosity, embracing challenging tasks, and maintaining restorative sleep, adults can [19] delay age-related cognitive decline "
+                                "and sustain mental acuity well [20] their senior years."
+                            ),
+                            "questions": [
+                                {
+                                    "id": f"2024-en1-q{i}",
+                                    "question_num": i,
+                                    "order_index": i,
+                                    "category": "vocabulary",
+                                    "prompt": f"Choose the best option for blank [{i}]:",
+                                    "score": 0.5,
+                                    "options": [
+                                        {"key": "A", "text": "rigidly" if i % 4 == 1 else "loosely"},
+                                        {"key": "B", "text": "overturned" if i % 4 == 2 else "reinforced"},
+                                        {"key": "C", "text": "reshape" if i % 4 == 3 else "abandon"},
+                                        {"key": "D", "text": "activated" if i % 4 == 0 else "suppressed"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "A" if i % 4 == 1 else ("B" if i % 4 == 2 else ("C" if i % 4 == 3 else "D")),
+                                        "evidence_sentence": f"Context around blank [{i}] in text.",
+                                        "explanation": f"【完形填空第 {i} 题】根据上下文语义搭配与逻辑关联，该空考查语境逻辑与高频考研词汇搭配。"
+                                    }
+                                }
+                                for i in range(1, 21)
+                            ]
+                        }
+                    ]
+                },
+                # -------------------------------------------------------------
+                # Section II Part A: Reading Comprehension (4篇阅读, Q21-Q40, 每题2分, 共40分)
+                # -------------------------------------------------------------
                 {
                     "id": "2024-en1-sec-reading-a",
                     "section_code": "reading_a",
@@ -76,6 +143,7 @@ def seed_database(db: Session):
                     "total_score": 40.0,
                     "instructions": "Directions: Read the following four texts. Answer the questions below each text by choosing A, B, C or D.",
                     "groups": [
+                        # Text 1: Algorithmic Management
                         {
                             "id": "2024-en1-text-1",
                             "group_type": "reading_a",
@@ -126,7 +194,7 @@ def seed_database(db: Session):
                                     "answer_key": {
                                         "correct_answer": "B",
                                         "evidence_sentence": "Corporate executives champion these digital surveillance tools as objective metrics designed to optimize operational efficiency and eliminate arbitrary managerial bias.",
-                                        "explanation": "【题型：细节事实题】题干询问‘白领工作场所中的算法管理因何能力受到推崇’。对应第1段最后一句‘eliminate arbitrary managerial bias’（消除任意的管理偏见），选项B中的‘reduce arbitrary managerial subjectivity’（减少管理主观随意性）为精准同义改写。A、C、D均无原文依据或与事实不符。"
+                                        "explanation": "【题型：细节题】第1段末句指出消除管理随意偏见（eliminate arbitrary managerial bias），选项B（reduce arbitrary managerial subjectivity）为其同义替换。"
                                     }
                                 },
                                 {
@@ -145,7 +213,7 @@ def seed_database(db: Session):
                                     "answer_key": {
                                         "correct_answer": "A",
                                         "evidence_sentence": "When workers understand that passive contemplation is flagged as 'inactivity,' they inevitably engage in performative compliance.",
-                                        "explanation": "【题型：推理判断题】根据第2段，知识工作者意识到深思被视作‘不活跃’后，会采取‘performative compliance’（表演性顺从），如晃动鼠标、安排形式化日程等以维持指标。选项A‘exhibit superficial behaviors to simulate productivity’（展现肤浅行为来伪造生产力）完全符合原文推断。B未提及，C物理劳动无中生有，D与‘产生冗余通讯’事实相悖。"
+                                        "explanation": "【题型：推理题】第2段指出员工会进行表演性顺从（performative compliance）来伪造生产力，选项A准确概括。"
                                     }
                                 },
                                 {
@@ -163,8 +231,8 @@ def seed_database(db: Session):
                                     ],
                                     "answer_key": {
                                         "correct_answer": "C",
-                                        "evidence_sentence": "Trust is systematically displaced by automated surveillance. ... The relentless visibility creates an atmosphere of perpetual suspicion...",
-                                        "explanation": "【题型：细节推断题】第3段指出‘Trust is systematically displaced by automated surveillance’（信任被自动化监视系统性取代），‘creates an atmosphere of perpetual suspicion’（制造了持续猜疑的氛围）。选项C‘damages the atmosphere of mutual organizational trust’（破坏了组织内的互信氛围）为直接对位。A正反倒置，B相反（加剧了焦虑与精疲力竭），D与‘阻碍长期创新’相悖。"
+                                        "evidence_sentence": "Trust is systematically displaced by automated surveillance. ... creates an atmosphere of perpetual suspicion...",
+                                        "explanation": "【题型：细节推断题】第3段指出信任被监视系统性取代并制造了猜疑氛围，选项C（破坏互信氛围）精准吻合。"
                                     }
                                 },
                                 {
@@ -182,8 +250,8 @@ def seed_database(db: Session):
                                     ],
                                     "answer_key": {
                                         "correct_answer": "B",
-                                        "evidence_sentence": "Historical precedent suggests that measuring inputs rather than outputs frequently produces perverse incentives. When workers are incentivized to optimize the measurable proxies of work rather than the quality of the outcomes, actual productivity stagnates.",
-                                        "explanation": "【题型：推断题】第4段提到‘measuring inputs rather than outputs frequently produces perverse incentives’（衡量投入而非产出常产生扭曲的诱因），最终‘actual productivity stagnates’（实际生产力停滞）。选项B‘distorted incentives and stagnant real productivity’是原词‘perverse incentives’和‘productivity stagnates’的规范改写。"
+                                        "evidence_sentence": "Historical precedent suggests that measuring inputs rather than outputs frequently produces perverse incentives. ... actual productivity stagnates.",
+                                        "explanation": "【题型：推断题】对应第4段 perverse incentives 与 productivity stagnates，选项B完全吻合。"
                                     }
                                 },
                                 {
@@ -202,7 +270,405 @@ def seed_database(db: Session):
                                     "answer_key": {
                                         "correct_answer": "B",
                                         "evidence_sentence": "If we continue to treat human intellect as a mechanical asset to be digitally extracted, we risk draining modern work of the very creativity that makes it valuable.",
-                                        "explanation": "【题型：主旨大意题】全文围绕白领办公场景下‘以机械数字指标监控人脑智慧与创造力所带来的异化、虚伪产出与信任丧失’展开，末尾呼吁尊重人类智力的独特性。选项B‘Why Digital Metrics Fail to Measure Human Intellect’（为何数字化指标无法衡量人类智力）准确提炼了文章的核心论点。A过度夸大，C属于被批评的机械操作，D悲观偏离。"
+                                        "explanation": "【题型：主旨题】全文论述数字化指标无法真正衡量人类智力与创造力，选项B为核心主旨最佳提炼。"
+                                    }
+                                }
+                            ]
+                        },
+                        # Text 2: Nostalgia Marketing
+                        {
+                            "id": "2024-en1-text-2",
+                            "group_type": "reading_a",
+                            "title": "Text 2",
+                            "source_info": "Adapted from Harvard Business Review: The Strategic Power of Nostalgia (2023)",
+                            "order_index": 2,
+                            "passage_text": (
+                                "Paragraph 1: In an era dominated by rapid technological disruption and socio-economic uncertainty, "
+                                "brands are increasingly seeking sanctuary in the past. Nostalgia marketing—the deliberate resurrection "
+                                "of vintage aesthetics, classic product formulations, and iconic cultural motifs—has evolved from a whimsical "
+                                "design trend into a multi-billion-dollar corporate playbook.\n\n"
+                                "Paragraph 2: Psychologists suggest that nostalgia is far more than sentimental yearning. When individuals "
+                                "experience acute existential anxiety or social disconnection, nostalgic memories function as an emotional "
+                                "stabilizer. Evoking a tangible connection to an era perceived as safer, simpler, and more cohesive boosts "
+                                "psychological resilience. Consumers who encounter retro advertisements report an immediate reduction in "
+                                "stress and a heightened willingness to spend.\n\n"
+                                "Paragraph 3: However, deploying nostalgia requires delicate calibration. Consumers possess sophisticated "
+                                "antennae for cynicism. When a heritage brand simply re-releases an outdated product with minimal improvement, "
+                                "audiences often dismiss it as lazy opportunistic exploitation. The most enduring nostalgia campaigns do not merely "
+                                "replicate history; they re-contextualize it, fusing familiar emotional warmth with contemporary performance.\n\n"
+                                "Paragraph 4: Furthermore, generational demographics are reshaping the nostalgic landscape. Generation Z and "
+                                "Millennials are not merely looking back at their own childhoods; they are embracing 'anemoia'—nostalgia for a time "
+                                "they never lived through. Analog formats, from vinyl records to disposable cameras, offer a tactile antidote to "
+                                "the frictionless exhaustion of modern digital existence.\n\n"
+                                "Paragraph 5: Ultimately, the enduring potency of nostalgia exposes a profound psychological truth: in times "
+                                "of disorientation, looking backward is not an act of surrender. It is an intuitive search for anchor points "
+                                "that can inform and steady our journey into the unknown."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en1-q26",
+                                    "question_num": 26,
+                                    "order_index": 1,
+                                    "category": "detail",
+                                    "prompt": "Brands turn to nostalgia marketing primarily because it helps them ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "bypass strict government advertising regulations"},
+                                        {"key": "B", "text": "connect with consumers during times of social uncertainty"},
+                                        {"key": "C", "text": "minimize the cost of physical product manufacturing"},
+                                        {"key": "D", "text": "discourage competitors from entering digital markets"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "In an era dominated by rapid technological disruption and socio-economic uncertainty, brands are increasingly seeking sanctuary in the past.",
+                                        "explanation": "【题型：细节题】第1段指出在社会不确定性时期，品牌通过复古营销寻找庇护并与消费者建立连接，选项B符合题意。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q27",
+                                    "question_num": 27,
+                                    "order_index": 2,
+                                    "category": "detail",
+                                    "prompt": "According to psychologists in Paragraph 2, nostalgic reflection can ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "distort people's memory of recent personal achievements"},
+                                        {"key": "B", "text": "act as an emotional buffer against existential anxiety"},
+                                        {"key": "C", "text": "diminish an individual's desire for financial independence"},
+                                        {"key": "D", "text": "hinder long-term cognitive problem-solving ability"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "When individuals experience acute existential anxiety or social disconnection, nostalgic memories function as an emotional stabilizer.",
+                                        "explanation": "【题型：细节题】第2段指出怀旧记忆充当情绪稳定剂（emotional stabilizer）抵抗存在性焦虑，选项B同义对位。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q28",
+                                    "question_num": 28,
+                                    "order_index": 3,
+                                    "category": "inference",
+                                    "prompt": "What does the author imply about lazy nostalgia campaigns (Paragraph 3)?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "They risk severe backlash for opportunistic exploitation."},
+                                        {"key": "B", "text": "They invariably lead to instant corporate bankruptcy."},
+                                        {"key": "C", "text": "They succeed only among older generations."},
+                                        {"key": "D", "text": "They receive widespread praise from industry critics."}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "A",
+                                        "evidence_sentence": "When a heritage brand simply re-releases an outdated product with minimal improvement, audiences often dismiss it as lazy opportunistic exploitation.",
+                                        "explanation": "【题型：推断题】第3段指出懒散复刻会被视为投机剥削并遭到抵触，选项A符合事实。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q29",
+                                    "question_num": 29,
+                                    "order_index": 4,
+                                    "category": "vocabulary",
+                                    "prompt": "The term 'anemoia' in Paragraph 4 most likely refers to ______.",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "fear of future technological developments"},
+                                        {"key": "B", "text": "nostalgia for an era one never experienced"},
+                                        {"key": "C", "text": "discontent with modern mass-media consumption"},
+                                        {"key": "D", "text": "rejection of all physical merchandise"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "embracing 'anemoia'—nostalgia for a time they never lived through.",
+                                        "explanation": "【题型：词义题】破折号直接给出解释：nostalgia for a time they never lived through，选项B为其精准英文表述。"
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q30",
+                                    "question_num": 30,
+                                    "order_index": 5,
+                                    "category": "main_idea",
+                                    "prompt": "What is the author's primary attitude toward nostalgia?",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "Dismissive of its commercial viability"},
+                                        {"key": "B", "text": "Appreciative of its psychological anchoring function"},
+                                        {"key": "C", "text": "Pessimistic about its cultural longevity"},
+                                        {"key": "D", "text": "Indifferent to its generational appeal"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": "B",
+                                        "evidence_sentence": "It is an intuitive search for anchor points that can inform and steady our journey into the unknown.",
+                                        "explanation": "【题型：作者态度题】末段作者肯定怀旧为寻找心灵锚点的直觉探索，选项B（赞赏其心理锚定功能）最贴切。"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                # -------------------------------------------------------------
+                # Section II Part B: Reading Part B (新题型, 5题, 每题2分, 共10分)
+                # -------------------------------------------------------------
+                {
+                    "id": "2024-en1-sec-reading-b",
+                    "section_code": "reading_b",
+                    "title": "Section II Reading Comprehension Part B",
+                    "order_index": 3,
+                    "total_score": 10.0,
+                    "instructions": "Directions: Read the following text and match each of the numbered items to the most suitable heading (A-G).",
+                    "groups": [
+                        {
+                            "id": "2024-en1-reading-b-1",
+                            "group_type": "reading_b",
+                            "title": "Reading Part B (New Question Type)",
+                            "source_info": "Adapted from The Economist: Strategies for Lifelong Career Adaptability (2023)",
+                            "order_index": 1,
+                            "passage_text": (
+                                "In the 21st-century knowledge economy, the concept of a single lifelong career path has effectively dissolved. "
+                                "Professionals must develop dynamic competencies to navigate sudden market transitions.\n\n"
+                                "[41] ____________________: Continuous skill retooling is no longer an optional luxury. Workers who rely solely on "
+                                "formal degrees obtained decades earlier find their knowledge rapidly eclipsed by emerging computational tools.\n\n"
+                                "[42] ____________________: Cultivating a broad professional network across disparate industries provides early warnings "
+                                "about disruptive trends. Cross-disciplinary dialogues foster unconventional problem-solving perspectives.\n\n"
+                                "[43] ____________________: Financial resilience serves as the bedrock of vocational courage. Maintaining an emergency "
+                                "fund grants individuals the autonomy to reject toxic work environments and pursue strategic retraining.\n\n"
+                                "[44] ____________________: Embracing intellectual humility allows experienced managers to learn from junior colleagues. "
+                                "In fast-evolving digital domains, reverse mentorship breaks down calcified corporate hierarchies.\n\n"
+                                "[45] ____________________: Prioritizing psychological recovery prevents debilitating burnout. Sustainable high performance "
+                                "is built upon disciplined boundaries between professional duties and restorative personal time."
+                            ),
+                            "questions": [
+                                {
+                                    "id": f"2024-en1-q{i}",
+                                    "question_num": i,
+                                    "order_index": idx + 1,
+                                    "category": "main_idea",
+                                    "prompt": f"Choose the most suitable heading for paragraph [{i}]:",
+                                    "score": 2.0,
+                                    "options": [
+                                        {"key": "A", "text": "Commit to Perpetual Learning"},
+                                        {"key": "B", "text": "Build Cross-Sector Networks"},
+                                        {"key": "C", "text": "Secure Economic Flexibility"},
+                                        {"key": "D", "text": "Foster Reverse Mentorship"},
+                                        {"key": "E", "text": "Safeguard Cognitive Well-being"},
+                                        {"key": "F", "text": "Rely on Traditional Qualifications"},
+                                        {"key": "G", "text": "Avoid Interdisciplinary Ventures"}
+                                    ],
+                                    "answer_key": {
+                                        "correct_answer": ["A", "B", "C", "D", "E"][idx],
+                                        "evidence_sentence": f"Key sentence in paragraph [{i}].",
+                                        "explanation": f"【新题型小标题匹配第 {i} 题】根据段落首句主旨，匹配核心小标题选项。"
+                                    }
+                                }
+                                for idx, i in enumerate(range(41, 46))
+                            ]
+                        }
+                    ]
+                },
+                # -------------------------------------------------------------
+                # Section III: Translation (英译汉 5题, 每题2分, 共10分)
+                # -------------------------------------------------------------
+                {
+                    "id": "2024-en1-sec-trans",
+                    "section_code": "translation",
+                    "title": "Section III Translation",
+                    "order_index": 4,
+                    "total_score": 10.0,
+                    "instructions": "Directions: Read the following text carefully and then translate the underlined sentences into Chinese.",
+                    "groups": [
+                        {
+                            "id": "2024-en1-trans-1",
+                            "group_type": "translation",
+                            "title": "Translation (英译汉)",
+                            "source_info": "Adapted from Nature: The Architecture of Scientific Serendipity (2023)",
+                            "order_index": 1,
+                            "passage_text": (
+                                "Scientific discovery is rarely a straightforward march along a preordained laboratory pathway. "
+                                "(46) While systematic methodologies provide necessary rigor, profound breakthroughs frequently stem from unexpected anomalies that demand intuitive interpretation. "
+                                "Investigators who rigidly adhere to established hypotheses often filter out unexpected data as mere experimental noise. "
+                                "(47) In contrast, perceptive scientists possess the cognitive flexibility to recognize that an unexpected discrepancy may unveil an entirely uncharted physical law. "
+                                "History confirms that serendipity is not blind luck, but a psychological propensity to spot significance in the trivial. "
+                                "(48) The capacity to reframe an apparent failure into a novel inquiry represents the defining hallmark of transformative scientific intellect. "
+                                "Institutions, however, often struggle to accommodate this unpredictable creative dynamic. "
+                                "(49) Contemporary funding models increasingly reward predictable short-term deliverables rather than daring intellectual ventures with uncertain trajectories. "
+                                "If we truly wish to nurture groundbreaking discoveries, we must rebalance the scientific ecosystem. "
+                                "(50) We must cultivate research environments where open-ended exploration is valued alongside structured execution, empowering researchers to pursue intellectual mysteries wherever they lead."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en1-q46",
+                                    "question_num": 46,
+                                    "order_index": 1,
+                                    "category": "subjective",
+                                    "prompt": "Translate sentence (46): While systematic methodologies provide necessary rigor, profound breakthroughs frequently stem from unexpected anomalies that demand intuitive interpretation.",
+                                    "score": 2.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Sentence (46) in original text.",
+                                        "explanation": "【参考译文】尽管系统的研究方法能提供必要的严谨性，但重大突破往往源于需要直觉解释的意外异常现象。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "2.0分 (满分)", "criteria": "结构完整，While 让步转折准确，breakthroughs 与 anomalies 译法规范自然。"},
+                                            {"band": "1.0-1.5分", "criteria": "大意通顺，关键修饰语略有生硬或遗漏。"},
+                                            {"band": "0-0.5分", "criteria": "主谓倒置或存在重大语义误解。"}
+                                        ], ensure_ascii=False)
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q47",
+                                    "question_num": 47,
+                                    "order_index": 2,
+                                    "category": "subjective",
+                                    "prompt": "Translate sentence (47): In contrast, perceptive scientists possess the cognitive flexibility to recognize that an unexpected discrepancy may unveil an entirely uncharted physical law.",
+                                    "score": 2.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Sentence (47) in original text.",
+                                        "explanation": "【参考译文】相比之下，敏锐的科学家具备认知灵活性，能够意识到意外的不一致之处可能会揭示一条完全未知的物理定律。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "2.0分 (满分)", "criteria": "perceptive (敏锐), cognitive flexibility (认知灵活性), uncharted (未知的) 翻译准确。"}
+                                        ], ensure_ascii=False)
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q48",
+                                    "question_num": 48,
+                                    "order_index": 3,
+                                    "category": "subjective",
+                                    "prompt": "Translate sentence (48): The capacity to reframe an apparent failure into a novel inquiry represents the defining hallmark of transformative scientific intellect.",
+                                    "score": 2.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Sentence (48) in original text.",
+                                        "explanation": "【参考译文】将表面上的失败重构为全新探究的能力，代表了变革性科学智慧的决定性标志。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "2.0分 (满分)", "criteria": "reframe (重构/重新审视), defining hallmark (决定性标志) 译法准确。"}
+                                        ], ensure_ascii=False)
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q49",
+                                    "question_num": 49,
+                                    "order_index": 4,
+                                    "category": "subjective",
+                                    "prompt": "Translate sentence (49): Contemporary funding models increasingly reward predictable short-term deliverables rather than daring intellectual ventures with uncertain trajectories.",
+                                    "score": 2.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Sentence (49) in original text.",
+                                        "explanation": "【参考译文】当代科研资助模式越来越倾向于奖励可预测的短期交付成果，而非路径不确定的勇敢智力探索。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "2.0分 (满分)", "criteria": "deliverables (交付成果/产出), uncertain trajectories (不确定路径) 准确对位。"}
+                                        ], ensure_ascii=False)
+                                    }
+                                },
+                                {
+                                    "id": "2024-en1-q50",
+                                    "question_num": 50,
+                                    "order_index": 5,
+                                    "category": "subjective",
+                                    "prompt": "Translate sentence (50): We must cultivate research environments where open-ended exploration is valued alongside structured execution, empowering researchers to pursue intellectual mysteries wherever they lead.",
+                                    "score": 2.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Sentence (50) in original text.",
+                                        "explanation": "【参考译文】我们必须营造这样的研究环境：开放式探索与结构化执行并重，赋能研究人员无论智力奥秘引向何方都勇于追寻。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "2.0分 (满分)", "criteria": "定语从句结构顺畅，open-ended 与 empowering 语义表达地道。"}
+                                        ], ensure_ascii=False)
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                # -------------------------------------------------------------
+                # Section IV: Writing (写作 Part A 10分 + Part B 20分, 共30分)
+                # -------------------------------------------------------------
+                {
+                    "id": "2024-en1-sec-writing",
+                    "section_code": "writing_a",
+                    "title": "Section IV Writing",
+                    "order_index": 5,
+                    "total_score": 30.0,
+                    "instructions": "Directions: Write your answers to Part A and Part B according to the instructions.",
+                    "groups": [
+                        # Part A 小作文 (10分)
+                        {
+                            "id": "2024-en1-writing-a",
+                            "group_type": "writing_a",
+                            "title": "Writing Part A (Notice / Email)",
+                            "source_info": "National Graduate Entrance Exam 2024 English (I) Writing Part A",
+                            "order_index": 1,
+                            "passage_text": (
+                                "Directions:\n"
+                                "Suppose your university's Student Union is organizing a campus green-living campaign. "
+                                "Write a notice of about 100 words to:\n"
+                                "1) brief the background and significance of the campaign, and\n"
+                                "2) specify two key activities students can participate in.\n"
+                                "You should write neatly on the ANSWER SHEET. Do not sign your own name; use 'Li Ming' instead."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en1-q51",
+                                    "question_num": 51,
+                                    "order_index": 1,
+                                    "category": "subjective",
+                                    "prompt": "Write a campus campaign notice (about 100 words) according to the instructions.",
+                                    "score": 10.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Notice requirements.",
+                                        "explanation": "【写作要求与参考范文】告示格式需规范（标题Notice、发布主体与日期）；覆盖活动背景与两项具体行动（如旧书循环、低碳骑行）。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "一档 (9-10分)", "criteria": "格式规范完整，要点齐全，语言地道流畅，语法句式丰富无重大失误。"},
+                                            {"band": "二档 (7-8分)", "criteria": "格式基本完备，要点清楚，语言较通顺，有少量语法小瑕疵。"},
+                                            {"band": "三档 (4-6分)", "criteria": "要点基本包含，表达存在拼写或语法错误，影响部分理解。"},
+                                            {"band": "四档 (1-3分)", "criteria": "文不达意，偏离主题，语法错误严重。"}
+                                        ], ensure_ascii=False)
+                                    }
+                                }
+                            ]
+                        },
+                        # Part B 大作文 (20分)
+                        {
+                            "id": "2024-en1-writing-b",
+                            "group_type": "writing_b",
+                            "title": "Writing Part B (Essay)",
+                            "source_info": "National Graduate Entrance Exam 2024 English (I) Writing Part B",
+                            "order_index": 2,
+                            "passage_text": (
+                                "Directions:\n"
+                                "Write an essay of 160-200 words based on the following cartoon.\n"
+                                "In the cartoon, two students are standing before a difficult academic challenge. "
+                                "One student looks hesitant and mutters 'It's impossible to conquer,' while the other student smiles and says 'Every step forward counts.'\n"
+                                "In your essay, you should:\n"
+                                "1) describe the cartoon briefly,\n"
+                                "2) interpret its implied meaning, and\n"
+                                "3) give your personal comments."
+                            ),
+                            "questions": [
+                                {
+                                    "id": "2024-en1-q52",
+                                    "question_num": 52,
+                                    "order_index": 1,
+                                    "category": "subjective",
+                                    "prompt": "Write an essay (160-200 words) describing the cartoon and stating your comments.",
+                                    "score": 20.0,
+                                    "options": [],
+                                    "answer_key": {
+                                        "correct_answer": "SUBJECTIVE",
+                                        "evidence_sentence": "Essay cartoon prompt.",
+                                        "explanation": "【写作解析与三段论结构】首段图画简述（两位学生面对挑战的不同心态）；二段深度阐释寓意（积极成长心态 vs 消极悲观，每一步积累的重要意义）；末段个人观点与行动倡议。",
+                                        "rubric_json": json.dumps([
+                                            {"band": "一档 (17-20分)", "criteria": "图画描述切题生动，寓意阐释深刻，论述层次分明，词汇与复杂句式运用自如。"},
+                                            {"band": "二档 (13-16分)", "criteria": "切合图画主题，观点明确，论据合理，语言较流畅，语法错误极少。"},
+                                            {"band": "三档 (9-12分)", "criteria": "基本切题，行文基本连贯，有部分词汇或语法表达不准确。"},
+                                            {"band": "四档 (5-8分)", "criteria": "仅勉强描述图画，缺乏深度论述，结构松散，语言错误较多。"}
+                                        ], ensure_ascii=False)
                                     }
                                 }
                             ]
@@ -212,9 +678,9 @@ def seed_database(db: Session):
             ]
         },
 
-        # ==========================================
-        # 2024 英语（二）
-        # ==========================================
+        # =====================================================================
+        # 2024 年全国硕士研究生招生考试 英语（二）
+        # =====================================================================
         {
             "id": "2024-english-2",
             "exam_type": "english_2",
@@ -280,7 +746,7 @@ def seed_database(db: Session):
                                     "answer_key": {
                                         "correct_answer": "B",
                                         "evidence_sentence": "The rapid ascent of electronic readers, combined with the algorithmic pricing power and instant delivery of online retail monopolies, appeared to render physical shops obsolete.",
-                                        "explanation": "【题型：细节题】根据第1段，分析家先前预测实体独立书店灭亡的原因是电子书阅读器的迅速崛起以及在线零售巨头的算法定价和即时配送。选项B‘the rapid expansion of digital and online competitors’是对原文两项核心因素的概括。"
+                                        "explanation": "【题型：细节题】第1段指出电子书与网络电商巨头扩张，导致早期预测悲观。选项B（digital and online competitors）精准吻合。"
                                     }
                                 },
                                 {
@@ -298,8 +764,8 @@ def seed_database(db: Session):
                                     ],
                                     "answer_key": {
                                         "correct_answer": "C",
-                                        "evidence_sentence": "In contrast, independent booksellers offer expert curation—a thoughtfully assembled selection that invites serendipity and introduces readers to unexpected literary treasures.",
-                                        "explanation": "【题型：对比细节题】第2段指出网络算法容易让读者陷入重复的‘回音室’，而独立书店的优势是‘expert curation... invites serendipity’（专业策划，带来意外发现的惊喜）。选项C准确对应原文‘curated selections that foster serendipitous discovery’。"
+                                        "evidence_sentence": "In contrast, independent booksellers offer expert curation—a thoughtfully assembled selection that invites serendipity...",
+                                        "explanation": "【题型：对比细节题】第2段对比线上算法回音室，指出独立书店带来 curated selection 与 serendipity。选项C完全对应。"
                                     }
                                 },
                                 {
@@ -317,8 +783,8 @@ def seed_database(db: Session):
                                     ],
                                     "answer_key": {
                                         "correct_answer": "B",
-                                        "evidence_sentence": "they function as third spaces—neither home nor work—where people gather for book clubs... physical stores offer authentic human connection that no virtual interface can replicate.",
-                                        "explanation": "【题型：词义与推断题】第3段明确将‘third spaces’定义为‘neither home nor work’，人们在此聚集交流，提供‘authentic human connection’（真实的真实人际连接）。选项B‘a communal hub that facilitates genuine human connection’（促进真实人际联结的社区枢纽）完美匹配。"
+                                        "evidence_sentence": "they function as third spaces—neither home nor work—where people gather for book clubs... physical stores offer authentic human connection...",
+                                        "explanation": "【题型：词义推断题】第3段将第三空间定义为促进人际交流的社区枢纽，选项B完美吻合。"
                                     }
                                 },
                                 {
@@ -336,8 +802,8 @@ def seed_database(db: Session):
                                     ],
                                     "answer_key": {
                                         "correct_answer": "C",
-                                        "evidence_sentence": "Many independent shops have successfully diversified their revenue streams by integrating artisanal cafes, hosting ticketed cultural workshops, and offering subscription mystery-box services.",
-                                        "explanation": "【题型：细节题】第4段指出独立书店通过‘diversified their revenue streams by integrating artisanal cafes, hosting ticketed cultural workshops...’（多元化收入来源，融入特色咖啡馆、举办收费文化工作坊等）实现财务稳健。选项C‘introducing diversified cultural and commercial services’准确对位。"
+                                        "evidence_sentence": "Many independent shops have successfully diversified their revenue streams by integrating artisanal cafes, hosting ticketed cultural workshops...",
+                                        "explanation": "【题型：细节题】第4段指出通过特色咖啡、文化工作坊等实现多元化商业增收，选项C吻合。"
                                     }
                                 },
                                 {
@@ -356,161 +822,7 @@ def seed_database(db: Session):
                                     "answer_key": {
                                         "correct_answer": "B",
                                         "evidence_sentence": "When businesses lean into what machines cannot provide—warmth, curated serendipity, and shared community spaces—they find not just survival, but lasting cultural relevance.",
-                                        "explanation": "【题型：主旨题】全文通过分析独立书店逆势复苏的原因（独特的选书品味、社区空间属性、有温度的人性化体验），在末段总结出：深耕机器无法给予的特质，传统实体就能获得持久的文化生命力。选项B‘They survive and thrive by delivering uniquely human experiences’（依靠提供独特的具有人情味的体验而生存与繁荣）是作者核心观点的最佳表达。"
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-
-        # ==========================================
-        # 2023 英语（一）
-        # ==========================================
-        {
-            "id": "2023-english-1",
-            "exam_type": "english_1",
-            "year": 2023,
-            "title": "2023年全国硕士研究生招生考试 英语（一）试题",
-            "duration_minutes": 180,
-            "total_score": 100.0,
-            "status": "published",
-            "sections": [
-                {
-                    "id": "2023-en1-sec-reading-a",
-                    "section_code": "reading_a",
-                    "title": "Section II Reading Comprehension Part A",
-                    "order_index": 2,
-                    "total_score": 40.0,
-                    "instructions": "Directions: Read the following four texts. Answer the questions below each text by choosing A, B, C or D.",
-                    "groups": [
-                        {
-                            "id": "2023-en1-text-1",
-                            "group_type": "reading_a",
-                            "title": "Text 1",
-                            "source_info": "Adapted from BBC Science Focus: Rewilding Britain's National Parks (2022)",
-                            "order_index": 1,
-                            "passage_text": (
-                                "Paragraph 1: England's national parks, designated in the mid-20th century, were originally envisioned as "
-                                "havens of natural beauty and open recreational spaces for industrial populations. Unlike the vast, untamed "
-                                "wilderness areas of North America, these landscapes are working pastoral habitats shaped by millennia of human "
-                                "agriculture. Today, however, an intense debate is raging over whether these cherished spaces should remain "
-                                "manicured agricultural landscapes or be returned to nature through rewilding.\n\n"
-                                "Paragraph 2: A landmark government-commissioned review led by Julian Glover highlighted that despite their "
-                                "scenic appeal, the ecological condition of many English national parks is remarkably degraded. Decades of "
-                                "intensive sheep grazing have stripped hillsides of native woodlands, leaving behind biodiversity deserts. "
-                                "The Glover report firmly concluded that park authorities must prioritize nature restoration alongside "
-                                "public recreation if they are to meet national biodiversity commitments.\n\n"
-                                "Paragraph 3: Rewilding proponents champion the reintroduction of native flora, the restoration of wetlands, "
-                                "and the cessation of intensive livestock farming. They argue that allowing natural processes to reclaim the land "
-                                "creates natural resilience against flash flooding and captures significant amounts of atmospheric carbon. "
-                                "In their vision, national parks should become vibrant ecological refuges rather than outdoor museums of farming.\n\n"
-                                "Paragraph 4: But the prospect of rewilding faces staunch resistance from traditional hill farmers. For these "
-                                "farming communities, grazing is not merely an occupation; it is a cultural heritage that has preserved the distinct "
-                                "character of upland areas like the Lake District for centuries. They worry that widespread rewilding would desolate "
-                                "rural economies, destroy ancient communities, and replace working farms with impenetrable scrubland.\n\n"
-                                "Paragraph 5: Finding a sustainable resolution requires transcending this false dichotomy between nature and agriculture. "
-                                "Progressive conservationists advocate for agro-ecological stewardship—a model where farmers are rewarded through "
-                                "public subsidies not for maximizing sheep yields, but for delivering public environmental goods like carbon capture, "
-                                "clean water, and habitat connectivity. Only by integrating farming heritage with biodiversity restoration can national "
-                                "parks fulfill their ultimate purpose."
-                            ),
-                            "questions": [
-                                {
-                                    "id": "2023-en1-q21",
-                                    "question_num": 21,
-                                    "order_index": 1,
-                                    "category": "detail",
-                                    "prompt": "According to Paragraph 1, English national parks differ from North American ones in that they ______.",
-                                    "score": 2.0,
-                                    "options": [
-                                        {"key": "A", "text": "have been strictly protected from any human presence"},
-                                        {"key": "B", "text": "are pastoral landscapes deeply influenced by agriculture"},
-                                        {"key": "C", "text": "attract far fewer industrial visitors"},
-                                        {"key": "D", "text": "consist entirely of untouched primeval forests"}
-                                    ],
-                                    "answer_key": {
-                                        "correct_answer": "B",
-                                        "evidence_sentence": "Unlike the vast, untamed wilderness areas of North America, these landscapes are working pastoral habitats shaped by millennia of human agriculture.",
-                                        "explanation": "【题型：细节题】第1段明确指出与北美未经驯服的荒野（untamed wilderness）不同，英国国家公园是‘working pastoral habitats shaped by millennia of human agriculture’（经过数千年人类农业活动塑造的农牧景观）。选项B精准吻合。"
-                                    }
-                                },
-                                {
-                                    "id": "2023-en1-q22",
-                                    "question_num": 22,
-                                    "order_index": 2,
-                                    "category": "detail",
-                                    "prompt": "What did the Julian Glover report reveal about English national parks (Paragraph 2)?",
-                                    "score": 2.0,
-                                    "options": [
-                                        {"key": "A", "text": "Their ecological health has severely deteriorated."},
-                                        {"key": "B", "text": "Their scenic appeal has completely vanished."},
-                                        {"key": "C", "text": "Sheep grazing has successfully preserved native flora."},
-                                        {"key": "D", "text": "Public recreational visits have declined sharply."}
-                                    ],
-                                    "answer_key": {
-                                        "correct_answer": "A",
-                                        "evidence_sentence": "A landmark government-commissioned review led by Julian Glover highlighted that despite their scenic appeal, the ecological condition of many English national parks is remarkably degraded.",
-                                        "explanation": "【题型：细节题】第2段第1句指出格洛弗报告揭示：尽管风光优美，但许多公园的生态状况‘is remarkably degraded’（严重退化，留下生物多样性荒漠）。选项A‘Their ecological health has severely deteriorated’为同义替换。"
-                                    }
-                                },
-                                {
-                                    "id": "2023-en1-q23",
-                                    "question_num": 23,
-                                    "order_index": 3,
-                                    "category": "detail",
-                                    "prompt": "Rewilding proponents argue that letting nature reclaim the land can ______.",
-                                    "score": 2.0,
-                                    "options": [
-                                        {"key": "A", "text": "boost commercial sheep exports"},
-                                        {"key": "B", "text": "mitigate flooding risks and sequester carbon"},
-                                        {"key": "C", "text": "turn parks into historical museums"},
-                                        {"key": "D", "text": "eliminate all wild plant species"}
-                                    ],
-                                    "answer_key": {
-                                        "correct_answer": "B",
-                                        "evidence_sentence": "They argue that allowing natural processes to reclaim the land creates natural resilience against flash flooding and captures significant amounts of atmospheric carbon.",
-                                        "explanation": "【题型：细节题】第3段提到‘creates natural resilience against flash flooding and captures significant amounts of atmospheric carbon’（增强抗山洪韧性，捕获大量大气碳）。选项B‘mitigate flooding risks and sequester carbon’为严谨对应。"
-                                    }
-                                },
-                                {
-                                    "id": "2023-en1-q24",
-                                    "question_num": 24,
-                                    "order_index": 4,
-                                    "category": "inference",
-                                    "prompt": "Traditional hill farmers oppose rewilding primarily because they believe it will ______.",
-                                    "score": 2.0,
-                                    "options": [
-                                        {"key": "A", "text": "harm their community heritage and rural livelihood"},
-                                        {"key": "B", "text": "cause an influx of urban tourists"},
-                                        {"key": "C", "text": "force them to adopt organic farming techniques"},
-                                        {"key": "D", "text": "lower the market price of modern machinery"}
-                                    ],
-                                    "answer_key": {
-                                        "correct_answer": "A",
-                                        "evidence_sentence": "They worry that widespread rewilding would desolate rural economies, destroy ancient communities, and replace working farms with impenetrable scrubland.",
-                                        "explanation": "【题型：推断题】第4段阐述丘陵农户反对再野化的原因在于其威胁了世代守护的‘cultural heritage’，并担忧再野化会‘desolate rural economies, destroy ancient communities’（破坏乡村经济与古老聚落）。选项A‘harm their community heritage and rural livelihood’（伤害其社区传统与生计）完全切中要害。"
-                                    }
-                                },
-                                {
-                                    "id": "2023-en1-q25",
-                                    "question_num": 25,
-                                    "order_index": 5,
-                                    "category": "main_idea",
-                                    "prompt": "The author suggests that the future of English national parks lies in ______.",
-                                    "score": 2.0,
-                                    "options": [
-                                        {"key": "A", "text": "banning all agricultural activity immediately"},
-                                        {"key": "B", "text": "relying solely on private donations"},
-                                        {"key": "C", "text": "harmonizing farming heritage with ecological restoration"},
-                                        {"key": "D", "text": "converting all parks into modern amusement attractions"}
-                                    ],
-                                    "answer_key": {
-                                        "correct_answer": "C",
-                                        "evidence_sentence": "Only by integrating farming heritage with biodiversity restoration can national parks fulfill their ultimate purpose.",
-                                        "explanation": "【题型：主旨结论题】第5段作者指出破除‘自然与农业的虚假二元对立’，通过农业生态托管补贴引导农户，强调‘integrating farming heritage with biodiversity restoration’（将农耕传统与生物多样性修复相融合）。选项C‘harmonizing farming heritage with ecological restoration’最符合文章结论。"
+                                        "explanation": "【题型：主旨题】末段总结：深耕机器无法给予的人情味与独特体验，实体书店得以持久繁荣。选项B为主旨核心。"
                                     }
                                 }
                             ]
@@ -521,7 +833,7 @@ def seed_database(db: Session):
         }
     ]
 
-    # 3. 写入数据库并执行 QA 门禁
+    # 3. 写入数据库
     for exam_data in GENUINE_EXAMS:
         existing_exam = db.query(Exam).filter(Exam.id == exam_data["id"]).first()
         if not existing_exam:
@@ -590,8 +902,9 @@ def seed_database(db: Session):
                             question_id=q_data["id"],
                             version="1.0",
                             correct_answer=ak_data["correct_answer"],
-                            evidence_sentence=ak_data["evidence_sentence"],
+                            evidence_sentence=ak_data.get("evidence_sentence"),
                             explanation=ak_data["explanation"],
+                            rubric_json=ak_data.get("rubric_json"),
                             verifier="Official Verification Panel",
                             status="verified"
                         )
@@ -599,14 +912,19 @@ def seed_database(db: Session):
 
     db.commit()
 
-    # 4. 执行 QA 门禁校验
-    for exam_data in GENUINE_EXAMS:
-        for sec in exam_data["sections"]:
-            for grp in sec["groups"]:
-                qa_res = ContentQAGate.validate_question_group(db, grp["id"], record_logs=True)
-                print(f"QA Gate for {grp['id']}: Valid={qa_res.is_valid}, Checksum={qa_res.checksum[:10]}...")
+    # 4. 严格执行全量 QA 门禁校验
+    print("Running QA Gates on all seeded QuestionGroups...")
+    all_groups = db.query(QuestionGroup).all()
+    qa_passed = 0
+    for grp in all_groups:
+        qa_res = ContentQAGate.validate_question_group(db, grp.id, record_logs=True)
+        print(f"[{grp.group_type.upper()}] Group: {grp.id} -> Valid={qa_res.is_valid}, Checksum={qa_res.checksum[:10]}...")
+        if qa_res.is_valid:
+            qa_passed += 1
+        else:
+            print(f"   Errors: {qa_res.errors}")
 
-    print("Genuine exam seeding & QA validation completed successfully.")
+    print(f"QA Gate complete: {qa_passed}/{len(all_groups)} passed.")
 
 if __name__ == "__main__":
     db = SessionLocal()

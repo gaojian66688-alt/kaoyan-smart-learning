@@ -19,9 +19,8 @@
       </div>
       <div class="header-center exam-switcher">
         <select id="examSelect" class="exam-dropdown">
-          <option value="2024-english-1">2024 英语（一）真题</option>
-          <option value="2024-english-2">2024 英语（二）真题</option>
-          <option value="2023-english-1">2023 英语（一）真题</option>
+          <option value="2024-english-1">2024 英语（一）官方真题</option>
+          <option value="2024-english-2">2024 英语（二）官方真题</option>
         </select>
       </div>
       <div class="header-right">
@@ -38,7 +37,7 @@
         <div class="home-hero">
           <div class="welcome-box">
             <h2>欢迎备考考研英语</h2>
-            <p class="subtitle">真题训练 × 统一批改 × FSRS科学记忆 × 证据化分析</p>
+            <p class="subtitle">真题训练 × 分层批改 × FSRS科学记忆 × 证据化分析</p>
           </div>
           <div class="quick-stats-row">
             <div class="stat-card">
@@ -65,77 +64,100 @@
             <div class="action-icon">🎯</div>
             <div class="action-info">
               <h3>专项训练</h3>
-              <p>按篇章精读，原汁原味真题，支持点词查义与单篇批改</p>
+              <p>按板块/题型专项精读，保留完整原文语境，支持点词查义与单篇批改</p>
             </div>
             <button class="action-btn">开始训练 →</button>
           </div>
 
-          <div class="action-card" onclick="app.navTo('review')">
-            <div class="action-icon">🧠</div>
+          <div class="action-card" onclick="app.navTo('practice', {mode: 'practice_full'})">
+            <div class="action-icon">📑</div>
             <div class="action-info">
-              <h3>FSRS 单词复习</h3>
-              <p>真题原句语境记忆，四档反馈驱动科学间隔调度</p>
+              <h3>整卷练习</h3>
+              <p>原卷全题型自由刷题，多题组导航，支持单元/板块/整卷分层批改</p>
             </div>
-            <button class="action-btn">进入词卡 →</button>
-          </div>
-
-          <div class="action-card" onclick="app.navTo('mistakes')">
-            <div class="action-icon">📕</div>
-            <div class="action-info">
-              <h3>错题本复盘</h3>
-              <p>保留完整上下文，自标真实错因，杜绝同类题型再失分</p>
-            </div>
-            <button class="action-btn">查看错题 →</button>
+            <button class="action-btn">进入整卷 →</button>
           </div>
 
           <div class="action-card" onclick="app.navTo('practice', {mode: 'strict_mock'})">
             <div class="action-icon">⏱️</div>
             <div class="action-info">
               <h3>严格整卷模拟</h3>
-              <p>限时整卷作答，屏蔽即时查词与单篇批改，全真考场体验</p>
+              <p>全真 180 分钟倒计时，屏蔽即时查词与单篇批改，一次性整卷判分</p>
             </div>
             <button class="action-btn">开启模考 →</button>
+          </div>
+
+          <div class="action-card" onclick="app.navTo('review')">
+            <div class="action-icon">🧠</div>
+            <div class="action-info">
+              <h3>FSRS 单词复习</h3>
+              <p>真题原句语境记忆，四档反馈驱动科学间隔调度，支持原文回跳</p>
+            </div>
+            <button class="action-btn">进入词卡 →</button>
           </div>
         </div>
       </section>
 
       <!-- 视图 2：刷题训练与阅读作答 -->
       <section id="viewPractice" class="view-panel">
-        <div class="practice-toolbar">
-          <div class="mode-badge-wrap">
-            <span id="practiceModeBadge" class="mode-badge">专项训练</span>
-            <span id="readingTitleBadge" class="title-badge">Text 1</span>
+        <!-- 训练与板块控制栏 -->
+        <div class="practice-controls-card">
+          <!-- 第一行：模式与倒计时 -->
+          <div class="controls-top-row">
+            <div class="mode-pills">
+              <button class="pill-btn active" data-mode="special_training" onclick="app.switchPracticeMode('special_training')">专项训练</button>
+              <button class="pill-btn" data-mode="practice_full" onclick="app.switchPracticeMode('practice_full')">日常整卷</button>
+              <button class="pill-btn" data-mode="strict_mock" onclick="app.switchPracticeMode('strict_mock')">严格模考</button>
+            </div>
+            <div class="timer-box">
+              ⏱️ <span id="timerLabel">作答耗时:</span> <span id="timerDisplay" class="timer-digits">00:00</span>
+            </div>
+            <div class="submit-actions-wrap">
+              <button id="btnSubmitGroup" class="btn btn-primary" onclick="app.confirmSubmit('group')">
+                提交当前单元批改
+              </button>
+              <button id="btnSubmitExam" class="btn btn-warning" onclick="app.confirmSubmit('exam')" style="display:none;">
+                交整卷并批改
+              </button>
+            </div>
           </div>
-          <div class="timer-wrap">
-            ⏱️ <span id="timerDisplay">00:00</span>
+
+          <!-- 第二行：板块与题组选择 (Use of English / Reading A / Reading B / Translation / Writing) -->
+          <div class="controls-sections-row" id="sectionNavigator">
+            <!-- 动态渲染板块导航按钮 -->
           </div>
-          <div class="toolbar-actions">
-            <button id="btnSubmitGroup" class="btn btn-primary" onclick="app.confirmSubmit('group')">
-              提交本篇批改
-            </button>
+
+          <!-- 第三行：专项题型筛选 (PRD 5.3 & AT-03: 题型筛选不破坏原题上下文) -->
+          <div class="category-filter-row" id="categoryFilterRow">
+            <span class="filter-label">题型定位专项：</span>
+            <button class="cat-pill active" data-cat="all" onclick="app.filterCategory('all')">全部题目</button>
+            <button class="cat-pill" data-cat="detail" onclick="app.filterCategory('detail')">细节题</button>
+            <button class="cat-pill" data-cat="inference" onclick="app.filterCategory('inference')">推理题</button>
+            <button class="cat-pill" data-cat="main_idea" onclick="app.filterCategory('main_idea')">主旨题</button>
+            <button class="cat-pill" data-cat="vocabulary" onclick="app.filterCategory('vocabulary')">词汇题</button>
           </div>
         </div>
 
         <!-- 读答分栏布局 (桌面左右分栏，移动端上下流畅滚动) -->
         <div class="reading-workspace">
-          <!-- 左侧：真实真题文章 -->
+          <!-- 左侧：真实真题文章材料 -->
           <div class="passage-pane">
             <div class="passage-header">
               <span class="passage-source" id="passageSource">来源加载中...</span>
-              <span class="passage-tip">💡 提示：点击任意英文单词可即时查词并一键加入生词本</span>
+              <span class="passage-tip" id="passageTip">💡 提示：点击任意英文单词可即时查词并一键加入生词本</span>
             </div>
             <article class="passage-article" id="passageContent">
               <!-- 文章段落与可点击单词动态渲染 -->
             </article>
           </div>
 
-          <!-- 右侧：原卷题目与选项 -->
+          <!-- 右侧：题目与答题卡 -->
           <div class="questions-pane">
             <div class="questions-header">
-              <h3>真题题目 (共 5 题，每题 2.0 分)</h3>
+              <h3 id="questionsPanelTitle">题目列表</h3>
             </div>
             <div class="questions-list" id="questionsList">
-              <!-- 题目与 A/B/C/D 单选选项动态渲染 -->
+              <!-- 题目动态渲染 (单选题渲染 A/B/C/D，翻译及作文渲染 textarea 输入框) -->
             </div>
           </div>
         </div>
@@ -167,7 +189,12 @@
                 <p class="card-definition" id="cardDefinition">释义加载中...</p>
                 
                 <div class="card-context-box">
-                  <span class="context-title">📌 真题原句溯源</span>
+                  <div class="context-top-bar">
+                    <span class="context-title">📌 真题原句溯源</span>
+                    <button id="btnJumpContext" class="btn-jump-context" onclick="event.stopPropagation(); app.jumpToOriginalReading()">
+                      🔍 回看原文语境 →
+                    </button>
+                  </div>
                   <p class="context-sentence" id="cardSentence">例句加载中...</p>
                   <span class="context-source" id="cardSource">来源</span>
                 </div>
@@ -317,12 +344,16 @@
         <div class="modal-body">
           <div class="score-summary-bar">
             <div class="score-col">
-              <span class="score-title">本次得分</span>
+              <span class="score-title">总得分</span>
               <span class="score-val" id="modalScore">0.0 / 10.0</span>
             </div>
             <div class="score-col">
-              <span class="score-title">正确率</span>
-              <span class="score-val" id="modalAccuracy">0%</span>
+              <span class="score-title">客观确定分</span>
+              <span class="score-val text-success" id="modalObjScore">0.0</span>
+            </div>
+            <div class="score-col">
+              <span class="score-title">主观估计分</span>
+              <span class="score-val text-warning" id="modalSubjScore">0.0</span>
             </div>
             <div class="score-col">
               <span class="score-title">批改层级</span>
