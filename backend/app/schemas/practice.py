@@ -8,31 +8,6 @@ class AttemptCreate(BaseModel):
     target_id: str
     user_id: Optional[str] = "default_user"
 
-class AttemptResponse(BaseModel):
-    id: str
-    mode: str
-    target_type: str
-    target_id: str
-    status: str
-    time_spent_seconds: int
-    created_at: datetime
-    saved_responses: dict[str, str] = {}
-
-class ResponseSaveItem(BaseModel):
-    question_id: str
-    user_answer: str
-
-class BatchResponseSave(BaseModel):
-    attempt_id: str
-    responses: list[ResponseSaveItem]
-    time_spent_seconds: Optional[int] = None
-
-class SubmitRequest(BaseModel):
-    attempt_id: str
-    scope: str  # group / section / exam
-    scope_id: str
-    user_id: Optional[str] = "default_user"
-
 class GradeResultSchema(BaseModel):
     question_id: str
     question_num: int
@@ -49,6 +24,32 @@ class GradeResultSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AttemptResponse(BaseModel):
+    id: str
+    mode: str
+    target_type: str
+    target_id: str
+    status: str
+    time_spent_seconds: int
+    created_at: datetime
+    saved_responses: dict[str, str] = {}
+    prior_results: list[GradeResultSchema] = []
+
+class ResponseSaveItem(BaseModel):
+    question_id: str
+    user_answer: str
+
+class BatchResponseSave(BaseModel):
+    attempt_id: str
+    responses: list[ResponseSaveItem]
+    time_spent_seconds: Optional[int] = None
+
+class SubmitRequest(BaseModel):
+    attempt_id: str
+    scope: str  # group / section / exam
+    scope_id: str
+    user_id: Optional[str] = "default_user"
 
 class SubmissionResponse(BaseModel):
     id: str

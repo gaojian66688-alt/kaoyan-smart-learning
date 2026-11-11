@@ -220,5 +220,71 @@ class TestFullReadingTrainingLoop(unittest.TestCase):
         self.assertEqual(plan_data["unconsolidated_mistakes_count"], 1)
         self.assertIsNotNone(plan_data["recommended_reading_group_id"])
 
+    def test_in_progress_attempt_resumes_saved_answers_and_prior_results(self):
+        """PRD P1: 验证作答中会话平滑恢复，包含未提交答案与已提交单篇的批改结果快照"""
+        user_id = "test_resume_user_99"
+
+        # 1. 开启整卷练习会话
+        res_att = self.client.post("/api/practice/attempt", json={
+            "mode": "practice_full",
+            "target_type": "exam",
+            "target_id": "2024-english-1",
+            "user_id": user_id
+        })
+        self.assertEqual(res_att.status_code, 200)
+        att_id = res_att.json()["id"]
+
+        # 2. 保存 Text 1 与 Text 2 的作答答案
+        res_save = self.client.post("/api/practice/save", json={
+            "attempt_id": att_id,
+            "responses": [
+                {"question_id": "2024-english-1-text1-q21", "user_answer": "D"},
+                {"question_id": "2024-english-1-text1-q22", "user_answer": "D"},
+                {"question_id": "2024-english-1-text2-q26", "user_answer": "A"},
+            ]
+        })
+        self.assertEqual(res_save.status_code, 200)
+
+        # 3. 提交单篇 Text 1 批改 (处于整卷作答流程中)
+        res_sub = self.client.post("/api/practice/submit", json={
+            "attempt_id": att_id,
+            "scope": "group",
+            "scope_id": "2024-english-1-reading-text-1",
+            "user_id": user_id
+        })
+        self.assertEqual(res_sub.status_code, 200)
+
+        # 4. 模拟页面刷新或离开后重新进入
+        res_resume = self.client.post("/api/practice/attempt", json={
+            "mode": "practice_full",
+            "target_type": "exam",
+            "target_id": "2024-english-1",
+            "user_id": user_id
+        })
+        self.assertEqual(res_resume.status_code, 200)
+        res_data = res_resume.json()
+        self.assertEqual(res_data["id"], att_id)
+        self.assertEqual(res_data["status"], "in_progress")
+        
+        # 验证答案完全恢复
+        self.assertEqual(res_data["saved_responses"]["2024-english-1-text1-q21"], "D")
+        self.assertEqual(res_data["saved_responses"]["2024-english-1-text2-q26"], "A")
+
+        # 验证先前提交的批改结果完整继承并恢复
+        self.assertGreater(len(res_data["prior_results"]), 0)
+        q21_prior = next((r for r in res_data["prior_results"] if r["question_id"] == "2024-english-1-text1-q21"), None)
+        self.assertIsNotNone(q21_prior)
+        self.assertTrue(q21_prior["is_correct"])
+        self.assertEqual(q21_prior["score"], 2.0)
+
+        # 5. 验证可以继续作答其他题目并保存
+        res_save_more = self.client.post("/api/practice/save", json={
+            "attempt_id": att_id,
+            "responses": [
+                {"question_id": "2024-english-1-text2-q27", "user_answer": "B"}
+            ]
+        })
+        self.assertEqual(res_save_more.status_code, 200)
+
 if __name__ == "__main__":
     unittest.main()

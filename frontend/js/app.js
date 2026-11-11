@@ -234,20 +234,27 @@ class KaoyanApp {
           let html = "";
           if (en1.length > 0) {
             html += `<optgroup label="📘 考研英语（一）历年真题 (2004–2026)">`;
-            html += en1.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join("");
+            html += en1.map(ex => {
+              const tag = ex.status === 'published' ? '【官方全真·已核验上线】' : '【来源核验中·暂未开放】';
+              return `<option value="${ex.id}">${ex.title} ${tag}</option>`;
+            }).join("");
             html += `</optgroup>`;
           }
           if (en2.length > 0) {
             html += `<optgroup label="📙 考研英语（二）历年真题 (2007–2026)">`;
-            html += en2.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join("");
+            html += en2.map(ex => {
+              const tag = ex.status === 'published' ? '【官方全真·已核验上线】' : '【来源核验中·暂未开放】';
+              return `<option value="${ex.id}">${ex.title} ${tag}</option>`;
+            }).join("");
             html += `</optgroup>`;
           }
           sel.innerHTML = html;
-          // 保持之前选中的考试或默认首张试卷
+          // 优先选中已上线的考试或默认选中的试卷
           if (exams.some(e => e.id === this.currentExamId)) {
             sel.value = this.currentExamId;
           } else {
-            this.currentExamId = exams[0].id;
+            const pub = exams.find(e => e.status === "published");
+            this.currentExamId = pub ? pub.id : exams[0].id;
             sel.value = this.currentExamId;
           }
           await this.loadExamOutline(this.currentExamId);
@@ -256,6 +263,14 @@ class KaoyanApp {
     } catch (e) {
       console.error("Failed to load exams:", e);
     }
+  }
+
+  async switchToPublishedExam(examId) {
+    const sel = document.getElementById("examSelect");
+    if (sel) sel.value = examId;
+    this.currentExamId = examId;
+    this.gradedResultsMap.clear();
+    await this.loadExamOutline(examId);
   }
 
   async loadExamOutline(examId) {
@@ -282,6 +297,32 @@ class KaoyanApp {
           `;
         });
       });
+
+      // P0 真实性防护：若试卷处于待核验/离线状态，展示明确的版权与来源核验说明，防止误操作或空页面
+      if (currentExam.status === "offline" || !firstGroupId) {
+        navContainer.innerHTML = `<span class="offline-hint" style="color: #64748b; font-size: 0.85rem; padding: 6px 12px; background: #f1f5f9; border-radius: 6px;">⚠️ 本试卷正在逐题核查权威原始来源与考题版权中，严格遵循“未经验证绝不伪造生成假题”原则，暂未开放作答。请切换至已上线的官方全真试卷。</span>`;
+        document.getElementById("passageSource").innerText = "【权威来源核验保护】";
+        document.getElementById("questionsPanelTitle").innerText = "暂未开放作答";
+        document.getElementById("passageContent").innerHTML = `
+          <div style="padding: 40px 24px; text-align: center; color: #475569; background: #fff; border-radius: 12px; border: 1px dashed #cbd5e1; margin-top: 16px;">
+            <div style="font-size: 3rem; margin-bottom: 12px;">🛡️</div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">官方历年真题来源核验与知识产权保护</h3>
+            <p style="font-size: 0.95rem; line-height: 1.6; max-width: 620px; margin: 0 auto 16px; color: #64748b;">
+              根据 PRD 核心准则：<strong>“禁止使用模板、改编文章或随机答案冒充真题；宁可题库数量少，也必须保证 100% 真实、准确、完整”</strong>。<br>
+              当前试卷（${currentExam.title}）正在进行真实来源出处与官方答案核实，暂不开放答题。
+            </p>
+            <button class="pill-btn primary" onclick="app.switchToPublishedExam('2024-english-1')" style="padding: 8px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              🚀 切换至 2024年英语（一）官方全真试卷
+            </button>
+          </div>
+        `;
+        document.getElementById("questionsContainer").innerHTML = `
+          <div style="padding: 40px 20px; text-align: center; color: #94a3b8;">
+            <p>请选择上方已核验的真题试卷以开始刷题训练</p>
+          </div>
+        `;
+        return;
+      }
 
       navContainer.innerHTML = navHtml;
       if (firstGroupId && !document.querySelector(`.sec-btn[data-gid="${this.currentGroupId}"]`)) {
@@ -473,7 +514,14 @@ class KaoyanApp {
         this.currentAttemptId = att.id;
         this.userAnswers = { ...(att.saved_responses || {}), ...this.userAnswers };
 
-        // 恢复选中状态
+        // 恢复已有单篇或板块提交的历史批改结果 (PRD P1: 进度无损恢复与继承)
+        if (att.prior_results && Array.isArray(att.prior_results)) {
+          att.prior_results.forEach(r => {
+            this.gradedResultsMap.set(r.question_id, r);
+          });
+        }
+
+        // 恢复选中状态与输入框内容
         for (const [qid, ans] of Object.entries(this.userAnswers)) {
           this.applyOptionVisual(qid, ans);
         }
@@ -510,6 +558,18 @@ class KaoyanApp {
         opt.classList.remove("selected");
       }
     });
+
+    // 适配主观题恢复输入文本与字数统计
+    const textarea = card.querySelector(".subjective-textarea");
+    if (textarea && textarea.value !== (key || "")) {
+      textarea.value = key || "";
+      const counter = document.getElementById(`counter-${questionId}`);
+      if (counter) {
+        const val = textarea.value;
+        const wordCount = val.trim() ? val.trim().split(/\s+/).length : 0;
+        counter.innerText = `已输入 ${val.length} 字 (约 ${wordCount} 词)`;
+      }
+    }
   }
 
   triggerAutoSave() {

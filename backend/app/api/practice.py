@@ -49,6 +49,29 @@ def create_or_resume_attempt(data: AttemptCreate, db: Session = Depends(get_db))
     if existing:
         saved = db.query(Response).filter(Response.attempt_id == existing.id).all()
         saved_dict = {r.question_id: r.user_answer for r in saved if r.user_answer}
+        
+        # 恢复已有单篇或板块提交的历史批改结果 (PRD P1: 进度无损恢复与继承)
+        sub_ids = [s.id for s in db.query(Submission.id).filter(Submission.attempt_id == existing.id).all()]
+        prior_grs = db.query(GradeResult).filter(GradeResult.submission_id.in_(sub_ids)).all() if sub_ids else []
+        gr_map = {gr.question_id: gr for gr in prior_grs}
+        prior_list = [
+            GradeResultSchema(
+                question_id=gr.question_id,
+                question_num=gr.question_num,
+                user_answer=gr.user_answer,
+                correct_answer=gr.correct_answer,
+                is_correct=gr.is_correct,
+                is_estimated=bool(gr.is_estimated),
+                score_band=gr.score_band,
+                score=gr.score,
+                max_score=gr.max_score,
+                evidence_sentence=gr.evidence_sentence,
+                explanation=gr.explanation,
+                category=gr.category
+            )
+            for gr in gr_map.values()
+        ]
+
         return AttemptResponse(
             id=existing.id,
             mode=existing.mode,
@@ -57,7 +80,8 @@ def create_or_resume_attempt(data: AttemptCreate, db: Session = Depends(get_db))
             status=existing.status,
             time_spent_seconds=existing.time_spent_seconds or 0,
             created_at=existing.created_at,
-            saved_responses=saved_dict
+            saved_responses=saved_dict,
+            prior_results=prior_list
         )
 
     attempt_id = str(uuid.uuid4())

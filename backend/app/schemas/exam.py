@@ -10,7 +10,7 @@ class QuestionSchema(BaseModel):
     group_id: str
     question_num: int
     prompt: str
-    options: list[OptionItem]
+    options: list[OptionItem] = []
     score: float
     order_index: int
     category: str
